@@ -1,0 +1,44 @@
+{
+"ursa_earthshock": {
+"dname": "Earthshock",
+"behavior": [
+"No Target",
+"AOE"
+],
+"dmg_type": "Magical",
+"desc": "Ursa slams the earth, causing a powerful shock to damage and slow all enemies in a nearby radius."
+},
+"ursa_overpower": {
+"dname": "Overpower",
+"behavior": "No Target",
+"desc": "Gives bonus attack speed for a number of attacks."
+},
+"ursa_fury_swipes": {
+"dname": "Fury Swipes",
+"behavior": "Passive",
+"desc": "Each attack deals more damage."
+},
+"ursa_enrage": {
+"dname": "Enrage",
+"behavior": "No Target",
+"desc": "Reduces incoming damage and applies a strong dispel."
+},
+"mirana_arrow": {
+"dname": "Sacred Arrow",
+"behavior": [
+"Point Target"
+],
+"dmg_type": "Magical",
+"desc": "Fires a long-range arrow that will stun and damage the first enemy unit it strikes."
+},
+"mirana_leap": {
+"dname": "Leap",
+"behavior": "No Target",
+"desc": "Mirana leaps forward into battle."
+},
+"mirana_starfall": {
+"dname": "Starfall",
+"behavior": "No Target",
+"desc": "Calls down a wave of meteors to damage nearby enemy units."
+}
+}

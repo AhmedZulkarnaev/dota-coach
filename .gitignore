@@ -1,0 +1,22 @@
+# Личные настройки: здесь секретный токен GSI — в репозиторий не выкладывать!
+settings.json
+
+# Скачанные данные OpenDota, иконки, журналы матчей и ошибок
+data_cache/
+match_logs/
+coach.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+build/
+dist/
+*.spec
+
+# Редакторы и ОС
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

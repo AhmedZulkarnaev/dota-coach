@@ -1,0 +1,662 @@
+{
+"tango": {
+"id": 44,
+"cost": 90,
+"dname": "Tango",
+"components": null,
+"created": false,
+"attrib": []
+},
+"flask": {
+"id": 39,
+"cost": 110,
+"dname": "Flask",
+"components": null,
+"created": false,
+"attrib": []
+},
+"clarity": {
+"id": 38,
+"cost": 50,
+"dname": "Clarity",
+"components": null,
+"created": false,
+"attrib": []
+},
+"faerie_fire": {
+"id": 237,
+"cost": 65,
+"dname": "Faerie Fire",
+"components": null,
+"created": false,
+"attrib": []
+},
+"tpscroll": {
+"id": 46,
+"cost": 100,
+"dname": "Town Portal Scroll",
+"components": null,
+"created": false,
+"attrib": []
+},
+"ward_observer": {
+"id": 42,
+"cost": 0,
+"dname": "Ward Observer",
+"components": null,
+"created": false,
+"attrib": []
+},
+"ward_sentry": {
+"id": 43,
+"cost": 50,
+"dname": "Ward Sentry",
+"components": null,
+"created": false,
+"attrib": []
+},
+"dust": {
+"id": 40,
+"cost": 80,
+"dname": "Dust",
+"components": null,
+"created": false,
+"attrib": []
+},
+"branches": {
+"id": 16,
+"cost": 50,
+"dname": "Iron Branch",
+"components": null,
+"created": false,
+"attrib": []
+},
+"quelling_blade": {
+"id": 11,
+"cost": 100,
+"dname": "Quelling Blade",
+"components": null,
+"created": false,
+"attrib": []
+},
+"slippers": {
+"id": 14,
+"cost": 140,
+"dname": "Slippers of Agility",
+"components": null,
+"created": false,
+"attrib": []
+},
+"circlet": {
+"id": 20,
+"cost": 155,
+"dname": "Circlet",
+"components": null,
+"created": false,
+"attrib": []
+},
+"gauntlets": {
+"id": 13,
+"cost": 140,
+"dname": "Gauntlets of Strength",
+"components": null,
+"created": false,
+"attrib": []
+},
+"magic_stick": {
+"id": 34,
+"cost": 200,
+"dname": "Magic Stick",
+"components": null,
+"created": false,
+"attrib": []
+},
+"boots": {
+"id": 29,
+"cost": 500,
+"dname": "Boots of Speed",
+"components": null,
+"created": false,
+"attrib": []
+},
+"gloves": {
+"id": 25,
+"cost": 450,
+"dname": "Gloves of Haste",
+"components": null,
+"created": false,
+"attrib": []
+},
+"belt_of_strength": {
+"id": 26,
+"cost": 450,
+"dname": "Belt Of Strength",
+"components": null,
+"created": false,
+"attrib": []
+},
+"boots_of_elves": {
+"id": 18,
+"cost": 450,
+"dname": "Band of Elvenskin",
+"components": null,
+"created": false,
+"attrib": []
+},
+"blades_of_attack": {
+"id": 2,
+"cost": 450,
+"dname": "Blades Of Attack",
+"components": null,
+"created": false,
+"attrib": []
+},
+"ogre_axe": {
+"id": 21,
+"cost": 1000,
+"dname": "Ogre Axe",
+"components": null,
+"created": false,
+"attrib": [
+{
+"key": "bonus_strength",
+"value": "10",
+"display": "+ {value} Strength"
+}
+]
+},
+"mithril_hammer": {
+"id": 23,
+"cost": 1600,
+"dname": "Mithril Hammer",
+"components": null,
+"created": false,
+"attrib": []
+},
+"broadsword": {
+"id": 3,
+"cost": 1000,
+"dname": "Broadsword",
+"components": null,
+"created": false,
+"attrib": []
+},
+"blade_of_alacrity": {
+"id": 19,
+"cost": 1000,
+"dname": "Blade Of Alacrity",
+"components": null,
+"created": false,
+"attrib": []
+},
+"ultimate_orb": {
+"id": 24,
+"cost": 2800,
+"dname": "Ultimate Orb",
+"components": null,
+"created": false,
+"attrib": []
+},
+"demon_edge": {
+"id": 51,
+"cost": 2200,
+"dname": "Demon Edge",
+"components": null,
+"created": false,
+"attrib": []
+},
+"javelin": {
+"id": 7,
+"cost": 900,
+"dname": "Javelin",
+"components": null,
+"created": false,
+"attrib": []
+},
+"vitality_booster": {
+"id": 47,
+"cost": 1000,
+"dname": "Vitality Booster",
+"components": null,
+"created": false,
+"attrib": []
+},
+"point_booster": {
+"id": 22,
+"cost": 1500,
+"dname": "Point Booster",
+"components": null,
+"created": false,
+"attrib": []
+},
+"platemail": {
+"id": 6,
+"cost": 1400,
+"dname": "Platemail",
+"components": null,
+"created": false,
+"attrib": []
+},
+"hyperstone": {
+"id": 27,
+"cost": 2000,
+"dname": "Hyperstone",
+"components": null,
+"created": false,
+"attrib": []
+},
+"claymore": {
+"id": 4,
+"cost": 1350,
+"dname": "Claymore",
+"components": null,
+"created": false,
+"attrib": []
+},
+"reaver": {
+"id": 49,
+"cost": 2800,
+"dname": "Reaver",
+"components": null,
+"created": false,
+"attrib": []
+},
+"morbid_mask": {
+"id": 52,
+"cost": 900,
+"dname": "Morbid Mask",
+"components": null,
+"created": false,
+"attrib": []
+},
+"quarterstaff": {
+"id": 12,
+"cost": 875,
+"dname": "Quarterstaff",
+"components": null,
+"created": false,
+"attrib": []
+},
+"robe": {
+"id": 17,
+"cost": 450,
+"dname": "Robe",
+"components": null,
+"created": false,
+"attrib": []
+},
+"magic_wand": {
+"id": 36,
+"cost": 450,
+"dname": "Magic Wand",
+"components": [
+"magic_stick",
+"branches",
+"branches"
+],
+"created": true,
+"attrib": []
+},
+"recipe_magic_wand": {
+"id": 1036,
+"cost": 150,
+"dname": "Magic Wand Recipe",
+"components": null,
+"created": false
+},
+"wraith_band": {
+"id": 75,
+"cost": 505,
+"dname": "Wraith Band",
+"components": [
+"slippers",
+"circlet"
+],
+"created": true,
+"attrib": []
+},
+"recipe_wraith_band": {
+"id": 1075,
+"cost": 210,
+"dname": "Wraith Band Recipe",
+"components": null,
+"created": false
+},
+"power_treads": {
+"id": 63,
+"cost": 1400,
+"dname": "Power Treads",
+"components": [
+"boots",
+"gloves",
+"belt_of_strength"
+],
+"created": true,
+"attrib": [
+{
+"key": "bonus_attack_speed",
+"value": "25"
+}
+]
+},
+"phase_boots": {
+"id": 50,
+"cost": 1500,
+"dname": "Phase Boots",
+"components": [
+"boots",
+"blades_of_attack",
+"blades_of_attack"
+],
+"created": true,
+"attrib": []
+},
+"recipe_phase_boots": {
+"id": 1050,
+"cost": 100,
+"dname": "Phase Boots Recipe",
+"components": null,
+"created": false
+},
+"orb_of_venom": {
+"id": 181,
+"cost": 275,
+"dname": "Orb Of Venom",
+"components": null,
+"created": false,
+"attrib": []
+},
+"orb_of_corrosion": {
+"id": 640,
+"cost": 925,
+"dname": "Orb Of Corrosion",
+"components": null,
+"created": false,
+"attrib": []
+},
+"black_king_bar": {
+"id": 116,
+"cost": 4050,
+"dname": "Black King Bar",
+"components": [
+"ogre_axe",
+"mithril_hammer"
+],
+"created": true,
+"attrib": []
+},
+"recipe_black_king_bar": {
+"id": 1116,
+"cost": 1450,
+"dname": "Black King Bar Recipe",
+"components": null,
+"created": false
+},
+"blink": {
+"id": 1,
+"cost": 2250,
+"dname": "Blink Dagger",
+"components": null,
+"created": false,
+"attrib": []
+},
+"basher": {
+"id": 143,
+"cost": 2875,
+"dname": "Skull Basher",
+"components": [
+"belt_of_strength",
+"mithril_hammer"
+],
+"created": true,
+"attrib": []
+},
+"recipe_basher": {
+"id": 1143,
+"cost": 825,
+"dname": "Skull Basher Recipe",
+"components": null,
+"created": false
+},
+"abyssal_blade": {
+"id": 208,
+"cost": 6250,
+"dname": "Abyssal Blade",
+"components": [
+"basher",
+"vitality_booster"
+],
+"created": true,
+"attrib": []
+},
+"recipe_abyssal_blade": {
+"id": 1208,
+"cost": 2375,
+"dname": "Abyssal Blade Recipe",
+"components": null,
+"created": false
+},
+"diffusal_blade": {
+"id": 174,
+"cost": 2500,
+"dname": "Diffusal Blade",
+"components": [
+"blade_of_alacrity",
+"robe",
+"robe"
+],
+"created": true,
+"attrib": []
+},
+"recipe_diffusal_blade": {
+"id": 1174,
+"cost": 600,
+"dname": "Diffusal Blade Recipe",
+"components": null,
+"created": false
+},
+"sange": {
+"id": 162,
+"cost": 2050,
+"dname": "Sange",
+"components": [
+"belt_of_strength",
+"ogre_axe"
+],
+"created": true,
+"attrib": []
+},
+"recipe_sange": {
+"id": 1162,
+"cost": 600,
+"dname": "Sange Recipe",
+"components": null,
+"created": false
+},
+"yasha": {
+"id": 170,
+"cost": 2050,
+"dname": "Yasha",
+"components": [
+"blade_of_alacrity",
+"boots_of_elves"
+],
+"created": true,
+"attrib": []
+},
+"recipe_yasha": {
+"id": 1170,
+"cost": 600,
+"dname": "Yasha Recipe",
+"components": null,
+"created": false
+},
+"sange_and_yasha": {
+"id": 154,
+"cost": 4100,
+"dname": "Sange and Yasha",
+"components": [
+"sange",
+"yasha"
+],
+"created": true,
+"attrib": []
+},
+"satanic": {
+"id": 156,
+"cost": 5050,
+"dname": "Satanic",
+"components": [
+"morbid_mask",
+"claymore",
+"reaver"
+],
+"created": true,
+"attrib": []
+},
+"skadi": {
+"id": 160,
+"cost": 5300,
+"dname": "Eye of Skadi",
+"components": [
+"ultimate_orb",
+"point_booster"
+],
+"created": true,
+"attrib": []
+},
+"recipe_skadi": {
+"id": 1160,
+"cost": 1000,
+"dname": "Eye of Skadi Recipe",
+"components": null,
+"created": false
+},
+"monkey_king_bar": {
+"id": 135,
+"cost": 5000,
+"dname": "Monkey King Bar",
+"components": [
+"demon_edge",
+"javelin"
+],
+"created": true,
+"attrib": []
+},
+"recipe_monkey_king_bar": {
+"id": 1135,
+"cost": 1900,
+"dname": "Monkey King Bar Recipe",
+"components": null,
+"created": false
+},
+"maelstrom": {
+"id": 166,
+"cost": 2950,
+"dname": "Maelstrom",
+"components": [
+"gloves",
+"mithril_hammer"
+],
+"created": true,
+"attrib": []
+},
+"recipe_maelstrom": {
+"id": 1166,
+"cost": 900,
+"dname": "Maelstrom Recipe",
+"components": null,
+"created": false
+},
+"spirit_vessel": {
+"id": 267,
+"cost": 2780,
+"dname": "Spirit Vessel",
+"components": [
+"vitality_booster",
+"robe"
+],
+"created": true,
+"attrib": []
+},
+"recipe_spirit_vessel": {
+"id": 1267,
+"cost": 1330,
+"dname": "Spirit Vessel Recipe",
+"components": null,
+"created": false
+},
+"glimmer_cape": {
+"id": 254,
+"cost": 2150,
+"dname": "Glimmer Cape",
+"components": [
+"robe",
+"quarterstaff"
+],
+"created": true,
+"attrib": []
+},
+"recipe_glimmer_cape": {
+"id": 1254,
+"cost": 825,
+"dname": "Glimmer Cape Recipe",
+"components": null,
+"created": false
+},
+"aghanims_shard": {
+"id": 609,
+"cost": 1400,
+"dname": "Aghanim's Shard",
+"components": null,
+"created": false,
+"attrib": []
+},
+"ultimate_scepter": {
+"id": 108,
+"cost": 4200,
+"dname": "Aghanim's Scepter",
+"components": [
+"point_booster",
+"ogre_axe",
+"blade_of_alacrity"
+],
+"created": true,
+"attrib": []
+},
+"recipe_ultimate_scepter": {
+"id": 1108,
+"cost": 700,
+"dname": "Aghanim's Scepter Recipe",
+"components": null,
+"created": false
+},
+"butterfly": {
+"id": 139,
+"cost": 5450,
+"dname": "Butterfly",
+"components": [
+"blade_of_alacrity",
+"claymore",
+"javelin"
+],
+"created": true,
+"attrib": []
+},
+"recipe_butterfly": {
+"id": 1139,
+"cost": 2200,
+"dname": "Butterfly Recipe",
+"components": null,
+"created": false
+},
+"trusty_shovel": {
+"id": 1600,
+"cost": 0,
+"dname": "Trusty Shovel",
+"components": null,
+"created": false,
+"attrib": [],
+"tier": 1
+}
+}

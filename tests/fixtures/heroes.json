@@ -1,0 +1,83 @@
+{
+"70": {
+"id": 70,
+"name": "npc_dota_hero_ursa",
+"localized_name": "Ursa",
+"primary_attr": "agi",
+"roles": [
+"Carry",
+"Durable",
+"Disabler"
+]
+},
+"26": {
+"id": 26,
+"name": "npc_dota_hero_lion",
+"localized_name": "Lion",
+"primary_attr": "int",
+"roles": [
+"Support",
+"Disabler",
+"Nuker",
+"Initiator"
+]
+},
+"27": {
+"id": 27,
+"name": "npc_dota_hero_shadow_shaman",
+"localized_name": "Shadow Shaman",
+"primary_attr": "int",
+"roles": [
+"Support",
+"Pusher",
+"Disabler",
+"Nuker",
+"Initiator"
+]
+},
+"7": {
+"id": 7,
+"name": "npc_dota_hero_earthshaker",
+"localized_name": "Earthshaker",
+"primary_attr": "str",
+"roles": [
+"Support",
+"Initiator",
+"Disabler",
+"Nuker"
+]
+},
+"44": {
+"id": 44,
+"name": "npc_dota_hero_phantom_assassin",
+"localized_name": "Phantom Assassin",
+"primary_attr": "agi",
+"roles": [
+"Carry",
+"Escape"
+]
+},
+"36": {
+"id": 36,
+"name": "npc_dota_hero_necrolyte",
+"localized_name": "Necrophos",
+"primary_attr": "int",
+"roles": [
+"Carry",
+"Nuker",
+"Durable",
+"Disabler"
+]
+},
+"32": {
+"id": 32,
+"name": "npc_dota_hero_riki",
+"localized_name": "Riki",
+"primary_attr": "agi",
+"roles": [
+"Carry",
+"Escape",
+"Disabler"
+]
+}
+}
