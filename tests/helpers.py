@@ -13,10 +13,18 @@ POST_GAME = "DOTA_GAMERULES_STATE_POST_GAME"
 
 class FakeStore:
     def __init__(self):
-        self.items = json.loads((FIX / "items.json").read_text())
-        self.heroes = json.loads((FIX / "heroes.json").read_text())
-        self.pop = {70: json.loads((FIX / "pop_70.json").read_text())}
-        self.abilities = json.loads((FIX / "abilities.json").read_text())
+        self.items = json.loads(
+            (FIX / "items.json").read_text(encoding="utf-8")
+        )
+        self.heroes = json.loads(
+            (FIX / "heroes.json").read_text(encoding="utf-8")
+        )
+        self.pop = {
+            70: json.loads((FIX / "pop_70.json").read_text(encoding="utf-8"))
+        }
+        self.abilities = json.loads(
+            (FIX / "abilities.json").read_text(encoding="utf-8")
+        )
 
     def get_popularity(self, hero_id):
         return self.pop.get(hero_id)

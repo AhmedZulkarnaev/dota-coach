@@ -36,5 +36,7 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Проверка синтаксиса всех модулей
         run: python -m compileall -q main.py coach tools tests
+      # -X warn_default_encoding + error::EncodingWarning: тест упадёт на любом
+      # чтении/записи файла без явной кодировки — даже на Linux, где это незаметно.
       - name: Тесты
-        run: python -m unittest -v
+        run: python -X warn_default_encoding -W error::EncodingWarning -m unittest -v

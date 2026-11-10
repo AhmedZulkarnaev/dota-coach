@@ -101,9 +101,10 @@ class HistoryTest(unittest.TestCase):
         folder = pathlib.Path(tempfile.mkdtemp())
         for match_id, duration in (("1", 1800), ("2", 2000), ("3", 120)):
             (folder / f"match_{match_id}.json").write_text(
-                json.dumps(make_log(match_id, duration=duration))
+                json.dumps(make_log(match_id, duration=duration)),
+                encoding="utf-8",
             )
-        (folder / "match_bad.json").write_text("{не json")
+        (folder / "match_bad.json").write_text("{не json", encoding="utf-8")
         matches = load_history(folder, exclude="2")
         self.assertEqual([m.match_id for m in matches], ["1"])
         self.assertEqual(load_history(folder / "нет такой папки"), [])
@@ -145,7 +146,7 @@ class MatchResultTest(unittest.TestCase):
         end = payload(1900, 500, state=POST_GAME)
         end["map"]["win_team"] = win_team
         saved = log.update(parse(end))
-        return json.loads(saved.read_text())["result"]
+        return json.loads(saved.read_text(encoding="utf-8"))["result"]
 
     def test_win_loss_unknown(self):
         self.assertEqual(
@@ -157,13 +158,17 @@ class MatchResultTest(unittest.TestCase):
     def test_result_written_when_winner_arrives_later(self):
         log = MatchLog(pathlib.Path(tempfile.mkdtemp()))
         saved = log.update(parse(payload(1900, 0, state=POST_GAME)))
-        self.assertEqual(json.loads(saved.read_text())["result"], "")
+        self.assertEqual(
+            json.loads(saved.read_text(encoding="utf-8"))["result"], ""
+        )
         late = payload(1901, 0, state=POST_GAME)
         late["map"]["win_team"] = "dire"
         self.assertIsNone(
             log.update(parse(late))
         )  # второй разбор не запускается
-        self.assertEqual(json.loads(saved.read_text())["result"], "loss")
+        self.assertEqual(
+            json.loads(saved.read_text(encoding="utf-8"))["result"], "loss"
+        )
 
 
 class DiagnosticsTest(unittest.TestCase):

@@ -167,7 +167,7 @@ add(
     dname="Butterfly",
 )
 add("trusty_shovel", 1600, 0, tier=1)
-(here / "items.json").write_text(json.dumps(ITEMS, indent=0))
+(here / "items.json").write_text(json.dumps(ITEMS, indent=0), encoding="utf-8")
 
 heroes = {
     "70": {
@@ -220,7 +220,9 @@ heroes = {
         "roles": ["Carry", "Escape", "Disabler"],
     },
 }
-(here / "heroes.json").write_text(json.dumps(heroes, indent=0))
+(here / "heroes.json").write_text(
+    json.dumps(heroes, indent=0), encoding="utf-8"
+)
 
 
 def ids(*names):
@@ -266,7 +268,7 @@ pop = {
         ("monkey_king_bar", 120),
     ),
 }
-(here / "pop_70.json").write_text(json.dumps(pop, indent=0))
+(here / "pop_70.json").write_text(json.dumps(pop, indent=0), encoding="utf-8")
 print("ok", len(ITEMS), "items")
 
 abilities = {
@@ -314,4 +316,6 @@ abilities = {
         "desc": "Calls down a wave of meteors to damage nearby enemy units.",
     },
 }
-(here / "abilities.json").write_text(json.dumps(abilities, indent=0))
+(here / "abilities.json").write_text(
+    json.dumps(abilities, indent=0), encoding="utf-8"
+)
