@@ -1,10 +1,12 @@
 """Загрузка и кэширование данных OpenDota.
 
 Что качаем:
-  /constants/patch            — номер текущего патча (для сброса кэша при новом патче)
+  /constants/patch            — номер текущего патча (для сброса кэша при новом
+  патче)
   /constants/items            — все предметы: цена, компоненты, характеристики
   /constants/heroes           — герои: имя, роли, основной атрибут
-  /constants/abilities        — способности: название, тип, описание (для подсказок)
+  /constants/abilities        — способности: название, тип, описание (для
+  подсказок)
   /heroes/{id}/itemPopularity — что покупают на герое по стадиям:
         start (до 0:00), early (0–10 мин), mid (10–25 мин, предметы от 2000),
         late (25+ мин, предметы от 4000). Данные по матчам высокого уровня.
@@ -12,7 +14,8 @@
 Всё сохраняется в data_cache/. Подсказки считаются только из локального кэша,
 поэтому сеть никогда не тормозит советы. Обновление идёт в фоне:
   • при смене патча — кэш полностью перекачивается;
-  • иначе — если файлу больше cache_max_age_days дней (мелкие патчи вида 7.41d).
+  • иначе — если файлу больше cache_max_age_days дней (мелкие патчи вида
+    7.41d).
 """
 
 import json
@@ -21,27 +24,37 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
+
+from . import USER_AGENT
 
 BASE_URL = "https://api.opendota.com/api"
-USER_AGENT = "DotaCoach/0.1 (personal desktop coach)"
 
 
 class DataStore:
-    def __init__(self, cache_dir, api_key="", max_age_days=3, on_update=None):
+    def __init__(
+        self,
+        cache_dir: Path,
+        api_key: str = "",
+        max_age_days: float = 3,
+        on_update: Callable[[], None] | None = None,
+    ) -> None:
         self.cache_dir = cache_dir
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.api_key = api_key or ""
         self.max_age = max_age_days * 86400
         self.on_update = on_update or (lambda: None)
-        self.items = {}
-        self.heroes = {}
-        self.abilities = {}
-        self.popularity = {}      # hero_id -> dict
-        self.meta = {}
+        self.items: dict[str, Any] = {}
+        self.heroes: dict[str, Any] = {}
+        self.abilities: dict[str, Any] = {}
+        self.popularity: dict[int, dict[str, Any]] = {}  # hero_id -> сборки
+        self.meta: dict[str, Any] = {}
         self.status = "Данные ещё не загружены"
         self._lock = threading.Lock()
-        self._jobs = queue.Queue()
-        self._pending = set()
+        self._jobs: queue.Queue[tuple] = queue.Queue()
+        self._pending: set[tuple] = set()
         self._load_cache()
         threading.Thread(target=self._worker, daemon=True).start()
 
@@ -105,13 +118,16 @@ class DataStore:
                 elif job[0] == "pop":
                     self._refresh_popularity(job[1])
             except (urllib.error.URLError, OSError, ValueError) as e:
-                self.status = f"Нет связи с OpenDota ({type(e).__name__}). Работаю по кэшу."
+                self.status = (
+                    f"Нет связи с OpenDota ({type(e).__name__}). Работаю по "
+                    "кэшу."
+                )
                 self.on_update()
             finally:
                 with self._lock:
                     self._pending.discard(job)
 
-    def refresh(self, force=False):
+    def refresh(self, force: bool = False) -> None:
         self._enqueue(("constants_force",) if force else ("constants",))
 
     def _refresh_constants(self, force):
@@ -120,13 +136,30 @@ class DataStore:
         patches = self._get("/constants/patch")
         latest = ""
         if isinstance(patches, list) and patches:
-            # Список идёт от старых патчей к новым; на всякий случай берём максимальный id.
-            newest = max(enumerate(patches),
-                         key=lambda p: (p[1].get("id", -1) if isinstance(p[1], dict) else -1, p[0]))[1]
-            latest = str(newest.get("name") or "") if isinstance(newest, dict) else ""
+            # Список идёт от старых патчей к новым; на всякий случай берём
+            # максимальный id.
+            newest = max(
+                enumerate(patches),
+                key=lambda p: (
+                    p[1].get("id", -1) if isinstance(p[1], dict) else -1,
+                    p[0],
+                ),
+            )[1]
+            latest = (
+                str(newest.get("name") or "")
+                if isinstance(newest, dict)
+                else ""
+            )
         patch_changed = latest and latest != self.meta.get("patch")
         stale = time.time() - self.meta.get("constants_at", 0) > self.max_age
-        if force or patch_changed or stale or not self.items or not self.heroes or not self.abilities:
+        if (
+            force
+            or patch_changed
+            or stale
+            or not self.items
+            or not self.heroes
+            or not self.abilities
+        ):
             self.status = "Скачиваю предметы и героев…"
             self.on_update()
             items = self._get("/constants/items")
@@ -144,8 +177,12 @@ class DataStore:
                 for p in self.cache_dir.glob("pop_*.json"):
                     p.unlink(missing_ok=True)
                 self.popularity.clear()
-            self.meta.update({"patch": latest or self.meta.get("patch", ""),
-                              "constants_at": time.time()})
+            self.meta.update(
+                {
+                    "patch": latest or self.meta.get("patch", ""),
+                    "constants_at": time.time(),
+                }
+            )
             self._write("meta", self.meta)
         self.status = self._status_text()
         self.on_update()
@@ -160,8 +197,10 @@ class DataStore:
         self.on_update()
 
     # ---------- доступ для движка ----------
-    def get_popularity(self, hero_id):
-        """Сразу отдаёт то, что есть в кэше; при необходимости запускает фоновое обновление."""
+    def get_popularity(self, hero_id: int) -> dict[str, Any] | None:
+        """Сразу отдаёт то, что есть в кэше; при необходимости запускает
+        фоновое обновление.
+        """
         if not hero_id:
             return None
         data = self.popularity.get(hero_id)
@@ -169,25 +208,36 @@ class DataStore:
             data = self._read(f"pop_{hero_id}")
             if data:
                 self.popularity[hero_id] = data
-        if data is None or time.time() - data.get("_fetched_at", 0) > self.max_age:
+        if (
+            data is None
+            or time.time() - data.get("_fetched_at", 0) > self.max_age
+        ):
             self._enqueue(("pop", hero_id))
         return data
 
-    def prefetch(self, hero_id):
+    def prefetch(self, hero_id: int) -> None:
         self.get_popularity(hero_id)
 
-    def get_benchmarks(self, hero_id, timeout=10):
-        """Показатели игроков на герое (для разбора матча). Синхронно, с кэшем на диске.
+    def get_benchmarks(
+        self, hero_id: int, timeout: float = 10
+    ) -> dict[str, Any] | None:
+        """Показатели игроков на герое (для разбора матча). Синхронно, с кэшем
+        на диске.
         Вызывать из фонового потока. При ошибке сети — кэш или None."""
         name = f"bench_{hero_id}"
         cached = self._read(name)
-        if cached and time.time() - cached.get("_fetched_at", 0) < self.max_age:
+        if (
+            cached
+            and time.time() - cached.get("_fetched_at", 0) < self.max_age
+        ):
             return cached
         try:
             url = BASE_URL + f"/benchmarks?hero_id={int(hero_id)}"
             if self.api_key:
                 url += "&api_key=" + self.api_key
-            req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+            req = urllib.request.Request(
+                url, headers={"User-Agent": USER_AGENT}
+            )
             with urllib.request.urlopen(req, timeout=timeout) as r:
                 data = json.loads(r.read().decode("utf-8"))
             if isinstance(data, dict):
@@ -198,10 +248,10 @@ class DataStore:
             pass
         return cached
 
-    def busy(self):
+    def busy(self) -> bool:
         with self._lock:
             return bool(self._pending)
 
-    def is_loading(self, hero_id):
+    def is_loading(self, hero_id: int) -> bool:
         with self._lock:
             return ("pop", hero_id) in self._pending

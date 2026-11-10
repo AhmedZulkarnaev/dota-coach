@@ -1,6 +1,9 @@
-"""Разбор JSON, который присылает Dota 2 через Game State Integration (режим игрока)."""
+"""Разбор JSON, который присылает Dota 2 через Game State Integration (режим
+игрока).
+"""
 
 from dataclasses import dataclass, field
+from typing import Any
 
 PRE_GAME_STATES = {
     "DOTA_GAMERULES_STATE_INIT",
@@ -25,14 +28,14 @@ STAGE_TITLES = {
 
 @dataclass
 class GameState:
-    valid: bool = False          # пришли ли вообще данные матча
-    spectating: bool = False     # режим зрителя/реплея — не поддерживаем
+    valid: bool = False  # пришли ли вообще данные матча
+    spectating: bool = False  # режим зрителя/реплея — не поддерживаем
     match_id: str = ""
     game_state: str = ""
-    clock: int = 0               # игровые часы, сек (до горна отрицательные)
+    clock: int = 0  # игровые часы, сек (до горна отрицательные)
     paused: bool = False
     hero_id: int = 0
-    hero_npc: str = ""           # "npc_dota_hero_ursa"
+    hero_npc: str = ""  # "npc_dota_hero_ursa"
     hero_level: int = 0
     alive: bool = True
     respawn_seconds: int = 0
@@ -41,30 +44,41 @@ class GameState:
     gold_reliable: int = 0
     gpm: int = 0
     xpm: int = 0
+    win_team: str = ""  # "radiant" / "dire" после конца матча
+    ward_cooldown: int | None = (
+        None  # сек до появления варда в лавке (None — нет данных)
+    )
+    buyback_cooldown: int = 0
     kills: int = 0
     deaths: int = 0
     assists: int = 0
     last_hits: int = 0
     denies: int = 0
     team: str = ""
-    inventory: list = field(default_factory=list)   # слоты 0–5
-    backpack: list = field(default_factory=list)    # слоты 6–8
-    stash: list = field(default_factory=list)
+    inventory: list[str] = field(default_factory=list)  # слоты 0–5
+    backpack: list[str] = field(default_factory=list)  # слоты 6–8
+    stash: list[str] = field(default_factory=list)
     has_tp: bool = False
     neutral: str = ""
     hp_pct: int = 100
     mana_pct: int = 100
-    abilities: list = field(default_factory=list)   # [{name, level, can_cast, passive, cooldown, ultimate}]
-    has_shard: bool = False      # Aghanim's Shard съедается при покупке, в слотах его нет
+    abilities: list[dict[str, Any]] = field(
+        default_factory=list
+    )  # [{name, level, can_cast, passive, cooldown, ultimate}]
+    has_shard: bool = (
+        False  # Aghanim's Shard съедается при покупке, в слотах его нет
+    )
     has_scepter_buff: bool = False  # Aghanim's Blessing / съеденный Scepter
 
     @property
-    def owned(self):
-        """Всё купленное: инвентарь + рюкзак + тайник (курьер GSI не показывает)."""
+    def owned(self) -> list[str]:
+        """Всё купленное: инвентарь + рюкзак + тайник (курьер GSI не
+        показывает).
+        """
         return self.inventory + self.backpack + self.stash
 
     @property
-    def stage(self):
+    def stage(self) -> str:
         if self.game_state in PRE_GAME_STATES or self.clock < 0:
             return "start"
         if self.clock < 600:
@@ -74,24 +88,27 @@ class GameState:
         return "late"
 
     @property
-    def in_match(self):
-        return self.game_state in PRE_GAME_STATES or self.game_state in (IN_GAME, POST_GAME)
+    def in_match(self) -> bool:
+        return self.game_state in PRE_GAME_STATES or self.game_state in (
+            IN_GAME,
+            POST_GAME,
+        )
 
     @property
-    def clock_str(self):
+    def clock_str(self) -> str:
         sign = "-" if self.clock < 0 else ""
         t = abs(self.clock)
         return f"{sign}{t // 60}:{t % 60:02d}"
 
 
-def _int(v, default=0):
+def _int(v: Any, default: int = 0) -> int:
     try:
         return int(v)
     except (TypeError, ValueError):
         return default
 
 
-def _item_name(slot):
+def _item_name(slot: Any) -> str:
     if not isinstance(slot, dict):
         return ""
     name = slot.get("name") or ""
@@ -100,7 +117,7 @@ def _item_name(slot):
     return name[5:] if name.startswith("item_") else name
 
 
-def parse(payload):
+def parse(payload: Any) -> GameState:
     gs = GameState()
     if not isinstance(payload, dict):
         return gs
@@ -109,9 +126,12 @@ def parse(payload):
     hero = payload.get("hero") or {}
     items = payload.get("items") or {}
 
-    # В режиме зрителя player/hero вложены по командам: {"team2": {"player0": {...}}}
-    if isinstance(player, dict) and any(k in ("team2", "team3") and isinstance(v, dict)
-                                        for k, v in player.items()):
+    # В режиме зрителя player/hero вложены по командам: {"team2": {"player0":
+    # {...}}}
+    if isinstance(player, dict) and any(
+        k in ("team2", "team3") and isinstance(v, dict)
+        for k, v in player.items()
+    ):
         gs.spectating = True
         return gs
     if not m:
@@ -122,6 +142,10 @@ def parse(payload):
     gs.game_state = m.get("game_state") or ""
     gs.clock = _int(m.get("clock_time"))
     gs.paused = bool(m.get("paused"))
+    win_team = str(m.get("win_team") or "").lower()
+    gs.win_team = win_team if win_team in ("radiant", "dire") else ""
+    ward_cd = m.get("ward_purchase_cooldown")
+    gs.ward_cooldown = _int(ward_cd) if ward_cd is not None else None
 
     gs.hero_id = _int(hero.get("id"))
     gs.hero_npc = hero.get("name") or ""
@@ -129,22 +153,34 @@ def parse(payload):
     gs.alive = bool(hero.get("alive", True))
     gs.respawn_seconds = _int(hero.get("respawn_seconds"))
     gs.buyback_cost = _int(hero.get("buyback_cost"))
+    gs.buyback_cooldown = _int(hero.get("buyback_cooldown"))
     gs.has_shard = bool(hero.get("aghanims_shard"))
     gs.has_scepter_buff = bool(hero.get("aghanims_scepter"))
 
     gs.hp_pct = _int(hero.get("health_percent"), 100)
     gs.mana_pct = _int(hero.get("mana_percent"), 100)
     abilities = payload.get("abilities") or {}
-    for key in sorted(abilities, key=lambda k: _int(k.replace("ability", ""), 99)):
+    for key in sorted(
+        abilities, key=lambda k: _int(k.replace("ability", ""), 99)
+    ):
         a = abilities.get(key)
         if not isinstance(a, dict):
             continue
         name = a.get("name") or ""
-        if not name or name.startswith(("special_bonus", "generic_", "plus_", "ability_")):
+        if not name or name.startswith(
+            ("special_bonus", "generic_", "plus_", "ability_")
+        ):
             continue
-        gs.abilities.append({"name": name, "level": _int(a.get("level")),
-                             "can_cast": bool(a.get("can_cast")), "passive": bool(a.get("passive")),
-                             "cooldown": _int(a.get("cooldown")), "ultimate": bool(a.get("ultimate"))})
+        gs.abilities.append(
+            {
+                "name": name,
+                "level": _int(a.get("level")),
+                "can_cast": bool(a.get("can_cast")),
+                "passive": bool(a.get("passive")),
+                "cooldown": _int(a.get("cooldown")),
+                "ultimate": bool(a.get("ultimate")),
+            }
+        )
 
     gs.gold = _int(player.get("gold"))
     gs.gold_reliable = _int(player.get("gold_reliable"))
@@ -155,7 +191,7 @@ def parse(payload):
     gs.assists = _int(player.get("assists"))
     gs.last_hits = _int(player.get("last_hits"))
     gs.denies = _int(player.get("denies"))
-    gs.team = player.get("team_name") or ""
+    gs.team = str(player.get("team_name") or "").lower()
 
     for i in range(9):
         n = _item_name(items.get(f"slot{i}"))
@@ -168,6 +204,7 @@ def parse(payload):
     tp = _item_name(items.get("teleport0"))
     gs.has_tp = tp == "tpscroll" or "tpscroll" in gs.owned
     gs.neutral = _item_name(items.get("neutral0"))
-    # TP и нейтралку в список купленного не включаем — они живут в своих слотах.
+    # TP и нейтралку в список купленного не включаем — они живут в своих
+    # слотах.
     gs.inventory = [x for x in gs.inventory if x != "tpscroll"]
     return gs

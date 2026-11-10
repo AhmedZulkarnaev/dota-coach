@@ -1,0 +1,8 @@
+# Для тех, кто пользуется flake8 вместо ruff.
+[flake8]
+max-line-length = 79
+# E203 и W503 расходятся с автоформатированием (ruff format / black)
+extend-ignore = E203, W503
+per-file-ignores =
+    coach/powershell_scripts.py: E501
+exclude = .git, __pycache__, .venv, venv, data_cache, match_logs

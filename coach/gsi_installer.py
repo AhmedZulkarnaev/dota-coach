@@ -1,6 +1,7 @@
 """Поиск папки Dota 2 и установка конфиг-файла Game State Integration.
 
-Файл кладётся в  ...\\steamapps\\common\\dota 2 beta\\game\\dota\\cfg\\gamestate_integration\\
+Файл кладётся в  ...\\steamapps\\common\\dota 2
+beta\\game\\dota\\cfg\\gamestate_integration\\
 Это официальный механизм Valve: игра сама отправляет данные программе.
 Кроме файла нужен параметр запуска Dota 2:  -gamestateintegration
 """
@@ -10,7 +11,9 @@ import sys
 from pathlib import Path
 
 CFG_NAME = "gamestate_integration_dotacoach.cfg"
-DOTA_REL = Path("steamapps") / "common" / "dota 2 beta" / "game" / "dota" / "cfg"
+DOTA_REL = (
+    Path("steamapps") / "common" / "dota 2 beta" / "game" / "dota" / "cfg"
+)
 
 CFG_TEMPLATE = """"Dota Coach"
 {{
@@ -36,15 +39,28 @@ CFG_TEMPLATE = """"Dota Coach"
 """
 
 
-def _steam_roots():
+def _steam_roots() -> list[Path]:
     roots = []
     if sys.platform == "win32":
         try:
             import winreg
+
             for hive, key, value in (
-                (winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam", "SteamPath"),
-                (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Valve\Steam", "InstallPath"),
-                (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Valve\Steam", "InstallPath"),
+                (
+                    winreg.HKEY_CURRENT_USER,
+                    r"Software\Valve\Steam",
+                    "SteamPath",
+                ),
+                (
+                    winreg.HKEY_LOCAL_MACHINE,
+                    r"SOFTWARE\WOW6432Node\Valve\Steam",
+                    "InstallPath",
+                ),
+                (
+                    winreg.HKEY_LOCAL_MACHINE,
+                    r"SOFTWARE\Valve\Steam",
+                    "InstallPath",
+                ),
             ):
                 try:
                     with winreg.OpenKey(hive, key) as k:
@@ -53,9 +69,15 @@ def _steam_roots():
                     pass
         except ImportError:
             pass
-        roots += [Path(r"C:\Program Files (x86)\Steam"), Path(r"C:\Program Files\Steam")]
+        roots += [
+            Path(r"C:\Program Files (x86)\Steam"),
+            Path(r"C:\Program Files\Steam"),
+        ]
     else:
-        roots += [Path.home() / ".steam" / "steam", Path.home() / ".local" / "share" / "Steam"]
+        roots += [
+            Path.home() / ".steam" / "steam",
+            Path.home() / ".local" / "share" / "Steam",
+        ]
     uniq = []
     for r in roots:
         if r not in uniq:
@@ -63,7 +85,7 @@ def _steam_roots():
     return uniq
 
 
-def _library_folders(steam_root):
+def _library_folders(steam_root: Path) -> list[Path]:
     libs = [steam_root]
     vdf = steam_root / "steamapps" / "libraryfolders.vdf"
     if vdf.exists():
@@ -76,7 +98,7 @@ def _library_folders(steam_root):
     return libs
 
 
-def find_cfg_dirs():
+def find_cfg_dirs() -> list[Path]:
     found = []
     for root in _steam_roots():
         for lib in _library_folders(root):
@@ -86,10 +108,17 @@ def find_cfg_dirs():
     return found
 
 
-def normalize_cfg_dir(chosen):
-    """Пользователь мог выбрать папку 'dota 2 beta' или 'cfg' — приводим к папке cfg."""
+def normalize_cfg_dir(chosen: str | Path) -> Path | None:
+    """Пользователь мог выбрать папку 'dota 2 beta' или 'cfg' — приводим к
+    папке cfg.
+    """
     p = Path(chosen)
-    for cand in (p, p / "game" / "dota" / "cfg", p / "dota" / "cfg", p / "cfg"):
+    for cand in (
+        p,
+        p / "game" / "dota" / "cfg",
+        p / "dota" / "cfg",
+        p / "cfg",
+    ):
         if cand.name == "cfg" and cand.is_dir():
             return cand
         if cand.name == "gamestate_integration" and cand.parent.name == "cfg":
@@ -97,21 +126,37 @@ def normalize_cfg_dir(chosen):
     return None
 
 
-def install(cfg_dir, port, token):
+def install(cfg_dir: str | Path, port: int, token: str) -> Path:
     target_dir = Path(cfg_dir) / "gamestate_integration"
     target_dir.mkdir(parents=True, exist_ok=True)
     path = target_dir / CFG_NAME
-    path.write_text(CFG_TEMPLATE.format(port=port, token=token), encoding="utf-8")
+    path.write_text(
+        CFG_TEMPLATE.format(port=port, token=token), encoding="utf-8"
+    )
     return path
 
 
-def is_installed(port, token):
-    for d in find_cfg_dirs():
+def config_status(port: int, token: str) -> str:
+    """Состояние GSI-конфига: "ok", "stale" (другой порт/токен), "missing" или
+    "no_dota".
+    """
+    dirs = find_cfg_dirs()
+    if not dirs:
+        return "no_dota"
+    found = False
+    for d in dirs:
         p = d / "gamestate_integration" / CFG_NAME
-        if p.exists():
-            try:
-                text = p.read_text(encoding="utf-8")
-            except OSError:
-                continue
-            return f":{port}/" in text and token in text
-    return False
+        if not p.exists():
+            continue
+        found = True
+        try:
+            text = p.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        if f":{port}/" in text and token in text:
+            return "ok"
+    return "stale" if found else "missing"
+
+
+def is_installed(port: int, token: str) -> bool:
+    return config_status(port, token) == "ok"

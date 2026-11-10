@@ -1,69 +1,117 @@
 """База предметов: стоимость, компоненты, сборка из частей.
 
-Источник — /api/constants/items OpenDota (это зеркало dotaconstants, данные из файлов игры).
-Ключи словаря — имена предметов без префикса "item_" (например "black_king_bar").
+Источник — /api/constants/items OpenDota (это зеркало dotaconstants, данные из
+файлов игры).
+Ключи словаря — имена предметов без префикса "item_" (например
+"black_king_bar").
 """
 
 from collections import Counter
+from collections.abc import Iterable
+from typing import Any
 
-# Расходники: их не советуем как «следующий предмет», о важных напоминаем отдельно.
+# Расходники: их не советуем как «следующий предмет», о важных напоминаем
+# отдельно.
 CONSUMABLES = {
-    "tango", "tango_single", "flask", "clarity", "faerie_fire", "enchanted_mango",
-    "ward_observer", "ward_sentry", "ward_dispenser", "dust", "smoke_of_deceit",
-    "tpscroll", "blood_grenade", "famango", "great_famango", "greater_famango",
-    "bottle", "tome_of_knowledge", "cheese", "aegis", "refresher_shard",
+    "tango",
+    "tango_single",
+    "flask",
+    "clarity",
+    "faerie_fire",
+    "enchanted_mango",
+    "ward_observer",
+    "ward_sentry",
+    "ward_dispenser",
+    "dust",
+    "smoke_of_deceit",
+    "tpscroll",
+    "blood_grenade",
+    "famango",
+    "great_famango",
+    "greater_famango",
+    "bottle",
+    "tome_of_knowledge",
+    "cheese",
+    "aegis",
+    "refresher_shard",
 }
 
 # Предметы, которые нельзя купить в лавке (дроп Рошана, события и т.п.).
-NOT_IN_SHOP_MARKERS = ("roshan", "aegis", "cheese", "refresher_shard", "river_painter",
-                       "mutation", "pocket", "winter", "halloween", "greevil", "present")
+NOT_IN_SHOP_MARKERS = (
+    "roshan",
+    "aegis",
+    "cheese",
+    "refresher_shard",
+    "river_painter",
+    "mutation",
+    "pocket",
+    "winter",
+    "halloween",
+    "greevil",
+    "present",
+)
 
 BOOTS = {
-    "boots", "power_treads", "phase_boots", "arcane_boots", "tranquil_boots",
-    "travel_boots", "travel_boots_2", "guardian_greaves", "boots_of_bearing",
+    "boots",
+    "power_treads",
+    "phase_boots",
+    "arcane_boots",
+    "tranquil_boots",
+    "travel_boots",
+    "travel_boots_2",
+    "guardian_greaves",
+    "boots_of_bearing",
 }
 TIER2_BOOTS = BOOTS - {"boots"}
 
 # Дешёвые предметы, которые всё же имеет смысл советовать после старта.
-USEFUL_CHEAP = {"magic_stick", "magic_wand", "boots", "wind_lace", "infused_raindrop",
-                "orb_of_venom", "blight_stone", "quelling_blade"}
+USEFUL_CHEAP = {
+    "magic_stick",
+    "magic_wand",
+    "boots",
+    "wind_lace",
+    "infused_raindrop",
+    "orb_of_venom",
+    "blight_stone",
+    "quelling_blade",
+}
 
 
 class ItemDB:
-    def __init__(self, items_const):
-        self.items = {}
+    def __init__(self, items_const: dict[str, Any] | None) -> None:
+        self.items: dict[str, Any] = {}
         for key, data in (items_const or {}).items():
             if not isinstance(data, dict):
                 continue
             name = key[5:] if key.startswith("item_") else key
             self.items[name] = data
-        self.by_id = {}
+        self.by_id: dict[int, str] = {}
         for name, data in self.items.items():
             item_id = data.get("id")
             if isinstance(item_id, int) and not name.startswith("recipe_"):
                 self.by_id[item_id] = name
-        self._closure_cache = {}
+        self._closure_cache: dict[str, set[str]] = {}
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return bool(self.items)
 
     # --- базовые свойства ---
-    def name_for_id(self, item_id):
+    def name_for_id(self, item_id: int | str) -> str | None:
         try:
             return self.by_id.get(int(item_id))
         except (TypeError, ValueError):
             return None
 
-    def exists(self, name):
+    def exists(self, name: str) -> bool:
         return name in self.items
 
-    def cost(self, name):
+    def cost(self, name: str) -> int:
         if name.startswith("recipe_"):
             return self.recipe_cost(name[7:])
         c = self.items.get(name, {}).get("cost")
         return int(c) if isinstance(c, (int, float)) else 0
 
-    def dname(self, name):
+    def dname(self, name: str) -> str:
         if name.startswith("recipe_"):
             return "Рецепт " + self.dname(name[7:])
         data = self.items.get(name)
@@ -71,21 +119,28 @@ class ItemDB:
             return data["dname"]
         return name.replace("_", " ").title()
 
-    def components(self, name):
+    def components(self, name: str) -> list[str]:
         comps = self.items.get(name, {}).get("components") or []
-        return [c[5:] if c.startswith("item_") else c for c in comps if isinstance(c, str)]
+        return [
+            c[5:] if c.startswith("item_") else c
+            for c in comps
+            if isinstance(c, str)
+        ]
 
-    def recipe_cost(self, name):
+    def recipe_cost(self, name: str) -> int:
         total = self.cost(name)
         parts = sum(self.cost(c) for c in self.components(name))
         return max(0, total - parts) if self.components(name) else 0
 
-    def is_neutral(self, name):
+    def is_neutral(self, name: str) -> bool:
         data = self.items.get(name, {})
-        return data.get("tier") is not None or data.get("qual") == "neutral" \
+        return (
+            data.get("tier") is not None
+            or data.get("qual") == "neutral"
             or bool(data.get("is_neutral_item"))
+        )
 
-    def is_shop_item(self, name):
+    def is_shop_item(self, name: str) -> bool:
         if name not in self.items or name.startswith("recipe_"):
             return False
         if self.cost(name) <= 0 or self.is_neutral(name):
@@ -93,7 +148,7 @@ class ItemDB:
         return not any(m in name for m in NOT_IN_SHOP_MARKERS)
 
     # --- сборка ---
-    def subtree(self, name):
+    def subtree(self, name: str) -> set[str]:
         """Все предметы, входящие в name на любой глубине (без самого name)."""
         if name in self._closure_cache:
             return self._closure_cache[name]
@@ -108,24 +163,30 @@ class ItemDB:
         self._closure_cache[name] = result
         return result
 
-    def covered(self, owned):
-        """Купленные предметы и всё, из чего они собраны: это уже не нужно советовать."""
+    def covered(self, owned: Iterable[str]) -> set[str]:
+        """Купленные предметы и всё, из чего они собраны: это уже не нужно
+        советовать.
+        """
         cov = set()
         for o in owned:
             cov.add(o)
             cov |= self.subtree(o)
         return cov
 
-    def plan(self, target, owned):
+    def plan(
+        self, target: str, owned: Iterable[str]
+    ) -> tuple[list[str], list[str]]:
         """Что докупить, чтобы собрать target, с учётом имеющихся компонентов.
 
-        Возвращает (leaves, used): leaves — список имён для покупки (рецепт как "recipe_x"),
+        Возвращает (leaves, used): leaves — список имён для покупки (рецепт как
+        "recipe_x"),
         used — какие из имеющихся предметов уйдут в сборку.
         """
         pool = Counter(owned)
-        leaves, used = [], []
+        leaves: list[str] = []
+        used: list[str] = []
 
-        def need(item, top=False):
+        def need(item: str, top: bool = False) -> None:
             if not top and pool[item] > 0:
                 pool[item] -= 1
                 used.append(item)
@@ -142,6 +203,6 @@ class ItemDB:
         need(target, top=True)
         return leaves, used
 
-    def remaining_cost(self, target, owned):
+    def remaining_cost(self, target: str, owned: Iterable[str]) -> int:
         leaves, _ = self.plan(target, owned)
         return sum(self.cost(x) for x in leaves)

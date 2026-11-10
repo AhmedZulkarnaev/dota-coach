@@ -8,6 +8,8 @@ coach.log*
 
 # Python
 __pycache__/
+.mypy_cache/
+.ruff_cache/
 *.py[cod]
 .venv/
 venv/
