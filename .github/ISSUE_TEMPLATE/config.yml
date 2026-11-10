@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Не получается подключить Dota 2
+    url: https://github.com/AhmedZulkarnaev/dota-coach#если-что-то-не-работает
+    about: Сначала откройте в программе ☰ → «Проверка подключения» — она покажет, какой шаг не выполнен.

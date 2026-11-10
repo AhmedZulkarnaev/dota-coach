@@ -1,5 +1,16 @@
 # Dota Coach — тренер для новичков в Dota 2
 
+[![tests](https://github.com/AhmedZulkarnaev/dota-coach/actions/workflows/tests.yml/badge.svg)](https://github.com/AhmedZulkarnaev/dota-coach/actions/workflows/tests.yml)
+[![release](https://img.shields.io/github/v/release/AhmedZulkarnaev/dota-coach?label=версия)](https://github.com/AhmedZulkarnaev/dota-coach/releases/latest)
+[![python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
+[![platform](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6)](#установка-один-раз-5-минут)
+[![license](https://img.shields.io/github/license/AhmedZulkarnaev/dota-coach)](LICENSE)
+[![code style](https://img.shields.io/badge/code%20style-ruff-261230)](https://github.com/astral-sh/ruff)
+
+![Dota Coach](docs/social-preview.png)
+
+**[⬇ Скачать последнюю версию](https://github.com/AhmedZulkarnaev/dota-coach/releases/latest)** · [Установка](#установка-один-раз-5-минут) · [Как это работает](#как-программа-выбирает-предмет) · [Помочь проекту](CONTRIBUTING.md)
+
 Программа следит за вашим матчем в реальном времени и подсказывает:
 - **какой предмет купить следующим**, сколько золота не хватает, что можно купить уже сейчас и **почему** этот предмет нужен;
 - **что делать на этой стадии игры**: «игра началась — добивайте крипов», «фармите лес», «скоро руны»;
@@ -227,6 +238,16 @@ python tools/simulate_gsi.py --speed 5   # тестовый матч без Dota
 - На GitHub при каждом push запускаются две проверки (`.github/workflows/tests.yml`): стиль и типы, а также тесты на Windows и Linux с Python 3.10 и 3.12.
 - Файл `settings.json` с секретным токеном GSI в репозиторий не попадает (`.gitignore`).
 - История изменений — в `CHANGELOG.md`.
+
+## Помочь проекту
+
+Проект открытый, помощь очень пригодится — даже без программирования:
+- ⭐ поставьте звезду, если программа пригодилась: так её проще найти другим;
+- сыграйте матч и [напишите](../../issues/new/choose), какой совет показался странным;
+- добавьте советы по способностям для своего героя (пара строк в `coach/abilities.py`);
+- поправьте произношение слова в `coach/speech_ru.py`.
+
+Подробнее — в [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Если что-то не работает
 
