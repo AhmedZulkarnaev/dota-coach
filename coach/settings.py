@@ -10,11 +10,11 @@ APP_DIR = Path(__file__).resolve().parent.parent
 SETTINGS_PATH = APP_DIR / "settings.json"
 CACHE_DIR = APP_DIR / "data_cache"
 LOG_DIR = APP_DIR / "match_logs"
+RECORD_DIR = APP_DIR / "recordings"
 
 DEFAULTS = {
     # Порт локального сервера, куда Dota присылает данные. Если занят —
-    # поменяйте
-    # и заново нажмите «Установить GSI-конфиг».
+    # поменяйте и заново нажмите «Установить GSI-конфиг».
     "port": 47113,
     # Секретный токен: сервер принимает данные только с ним.
     "token": "",
@@ -37,6 +37,10 @@ DEFAULTS = {
     # Как часто перекачивать данные о сборках, даже если номер патча не
     # поменялся.
     "cache_max_age_days": 3,
+    # Записывать матчи в recordings/: для tools/replay.py и отчётов об ошибках.
+    "record_matches": True,
+    # Сколько последних записей хранить (одна ~1–2 МБ).
+    "recordings_keep": 50,
 }
 
 

@@ -27,12 +27,40 @@ from typing import Any
 from . import enemies as enemies_mod
 from . import slots as slots_mod
 from .abilities import ability_advice
+from .commitment import Commitment, choose_target
 from .explanations import GENERIC_BY_STAGE, essence
 from .game_state import POST_GAME, STAGE_TITLES, STAGES, GameState
 from .heroes_ru import ru_title, short_name
 from .item_db import BOOTS, CONSUMABLES, TIER2_BOOTS, USEFUL_CHEAP, ItemDB
+from .shopping import Part, shopping_list
 
-Pairs = list[tuple[str, int]]  # [(название, цена)]
+Pairs = list[tuple[str, int]]
+
+# Окна стадий в секундах игрового времени: [начало, конец).
+STAGE_WINDOWS = {"lane": (0, 600), "mid": (600, 1800), "late": (1800, 10**6)}
+FADE = 600  # за сколько секунд вес стадии плавно растёт или падает
+
+
+def stage_weight(stage: str, clock: int) -> float:
+    """Вес предметов стадии в момент clock — без скачков на границах.
+
+    Внутри окна стадии — 1.0. Перед стадией вес растёт от 0.6 (за 10 минут)
+    до 1.0, после неё падает до 0.5 за 10 минут и до 0.3 ещё за 10. Раньше
+    вес менялся скачком ровно на 10:00 и 30:00, и совет прыгал.
+    """
+    start, end = STAGE_WINDOWS[stage]
+    if start <= clock < end:
+        return 1.0
+    if clock < start:
+        d = start - clock
+        return 1.0 - 0.4 * d / FADE if d <= FADE else 0.0
+    d = clock - end
+    if d <= FADE:
+        return 1.0 - 0.5 * d / FADE
+    if d <= 2 * FADE:
+        return 0.5 - 0.2 * (d - FADE) / FADE
+    return 0.0  # [(название, цена)]
+
 
 BUCKETS = {
     "start": "start_game_items",
@@ -82,6 +110,10 @@ class Advice:
         default_factory=list
     )  # срочные: ульт готов, мало HP
     ability_lines: list[tuple[str, str, str]] = field(default_factory=list)
+    # Список покупок: каждая часть с состоянием (есть / купите сейчас / ...).
+    parts: list[Part] = field(default_factory=list)
+    next_step: str = ""  # одна фраза: что сделать в лавке прямо сейчас
+    switch_note: str = ""  # почему совет сменился (только в момент смены)
 
 
 class Advisor:
@@ -91,6 +123,8 @@ class Advisor:
         self._db_src: Any = None
         self._heroes_src: Any = None
         self._heroes_by_short: dict[str, dict[str, Any]] = {}
+        # Прошлый выбор цели: чтобы совет не прыгал (см. commitment.py).
+        self._commit: Commitment | None = None
 
     # ---------- данные ----------
     @property
@@ -210,7 +244,9 @@ class Advisor:
         if gs.stage == "start":
             self._start_bundle(adv, gs, pop, db)
         else:
-            self._pick_target(adv, gs, pop, db, owned, covered, counters)
+            self._pick_target(
+                adv, gs, pop, db, owned, covered, counters, enemy_shorts, role
+            )
 
         # ситуативные предметы против врагов, если они не стали основной целью
         for c in counters:
@@ -281,14 +317,13 @@ class Advisor:
 
     # ---------- кандидаты ----------
     def candidate_scores(self, gs, pop, db, owned, covered, counters):
-        i = STAGES.index(gs.stage)
         scores: dict[str, float] = {}
-        for j, w in ((i, 1.0), (i + 1, 0.6), (i - 1, 0.5)):
-            if j < 1 or j >= len(
-                STAGES
-            ):  # стартовые предметы после 0:00 не советуем
+        # Стартовые предметы после 0:00 не советуем, поэтому только три стадии.
+        for stage in ("lane", "mid", "late"):
+            w = stage_weight(stage, max(0, gs.clock))
+            if w <= 0:
                 continue
-            bucket = pop.get(BUCKETS[STAGES[j]]) or {}
+            bucket = pop.get(BUCKETS[stage]) or {}
             mx = max(bucket.values(), default=0)
             if not mx:
                 continue
@@ -322,20 +357,27 @@ class Advisor:
 
         scores = {n: s for n, s in scores.items() if allowed(n)}
 
-        # бонус против врагов
+        # Бонус против врагов. Он набирает силу к мид-гейму: на линии сначала
+        # ботинки и дешёвые предметы, иначе новичок копит на BKB всю линию.
         reasons = {}
+        urgency = stage_weight("mid", max(0, gs.clock))
         for c in counters:
             if c.item in covered or not db.is_shop_item(c.item):
                 continue
             if c.item in scores:
-                scores[c.item] += 0.5 * c.strength
+                scores[c.item] += 0.5 * c.strength * urgency
                 reasons[c.item] = c.reason
             elif c.strength >= 0.9 and gs.stage in ("mid", "late"):
                 scores[c.item] = 0.6 * c.strength
                 reasons[c.item] = c.reason
 
-        # убираем компоненты других сильных кандидатов
+        # Убираем простые детали (Ogre Axe, Mithril Hammer…) других сильных
+        # кандидатов: их покупают в составе предмета по списку покупок.
+        # Собранные предметы (Skull Basher, Sange) не трогаем — их берут
+        # и сами по себе.
         for name in list(scores):
+            if db.components(name):
+                continue
             for other, s in scores.items():
                 if (
                     other != name
@@ -363,13 +405,14 @@ class Advisor:
             if cost > 0:
                 done = cost - db.remaining_cost(name, owned)
                 if done > 0:
-                    # Начатую сборку почти всегда стоит закончить: компонент в
-                    # рюкзаке
-                    # не даёт и половины пользы готового предмета.
+                    # Начатую сборку почти всегда стоит закончить: компонент
+                    # в рюкзаке не даёт и половины пользы готового предмета.
                     scores[name] += 0.25 + 0.5 * done / cost
         return scores, reasons
 
-    def _pick_target(self, adv, gs, pop, db, owned, covered, counters):
+    def _pick_target(
+        self, adv, gs, pop, db, owned, covered, counters, enemies, role
+    ):
         scores, reasons = self.candidate_scores(
             gs, pop, db, owned, covered, counters
         )
@@ -389,7 +432,19 @@ class Advisor:
             )
             return
         ranked = sorted(scores.items(), key=lambda kv: -kv[1])
-        target = ranked[0][0]
+        choice = choose_target(
+            ranked,
+            self._commit,
+            match_id=gs.match_id,
+            clock=gs.clock,
+            owned=owned,
+            enemies=enemies,
+            role=role,
+            db=db,
+        )
+        self._commit = choice.commitment
+        target = choice.target
+        adv.switch_note = choice.note
         leaves, used = db.plan(target, owned)
         remaining = sum(db.cost(x) for x in leaves)
         parts = [x for x in leaves if not x.startswith("recipe_")]
@@ -420,18 +475,20 @@ class Advisor:
             and gs.gold + sp.refund >= remaining
         )
         adv.missing = [(db.dname(x), db.cost(x)) for x in leaves]
-        adv.buy_now = self._affordable(leaves, db, gs.gold)
         # Части покупаются по одной и до сборки тоже занимают места. Если места
-        # нет —
-        # они останутся в тайнике и не будут работать: лучше копить на предмет
-        # целиком.
+        # нет — они останутся в тайнике и не будут работать: лучше копить на
+        # предмет целиком.
         adv.parts_no_room = (
             not adv.can_buy_full
-            and bool(adv.buy_now)
+            and bool(self._affordable(leaves, db, gs.gold))
             and len(parts) - 1 > sp.free_after
         )
-        if adv.parts_no_room:
-            adv.buy_now = []
+        shop = shopping_list(target, owned, gs.gold, db, adv.parts_no_room)
+        adv.parts, adv.next_step, adv.buy_now = (
+            shop.parts,
+            shop.next_step,
+            shop.buy_now,
+        )
         adv.what = essence(target, db)
         adv.why = self._why_now(
             gs, pop, db, target, reasons.get(target), used, remaining

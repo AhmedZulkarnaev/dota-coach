@@ -19,6 +19,7 @@ from tkinter import filedialog, messagebox, ttk
 
 from . import __version__, gsi_installer
 from . import settings as settings_mod
+from . import shopping as shop_mod
 from .advisor import Advisor
 from .data_store import DataStore
 from .diagnostics import format_checks, run_checks
@@ -31,6 +32,7 @@ from .icons import IconCache
 from .match_coach import MatchCoach
 from .match_log import MatchLog
 from .post_match import build_report, load_log
+from .recorder import MatchRecorder
 from .theme import (
     BG,
     BG2,
@@ -97,7 +99,14 @@ class CoachApp:
         self._coach_at = 0.0
         self._voice_warned = False
         self._report_ready = None
+        self._note, self._note_at = "", 0.0
+        self._spoken_parts: set[str] = set()
         self.log = MatchLog(settings_mod.LOG_DIR)
+        self.recorder = MatchRecorder(
+            settings_mod.RECORD_DIR,
+            enabled=bool(self.s.get("record_matches", True)),
+            keep=int(self.s.get("recordings_keep", 50)),
+        )
         self.server = GSIServer(
             int(self.s["port"]), self.s["token"], self._on_payload
         )
@@ -116,6 +125,8 @@ class CoachApp:
 
     # ---------- связь с другими потоками ----------
     def _on_payload(self, data):  # поток GSI-сервера
+        # Пишем каждый пакет: окно обрабатывает только последний за 200 мс.
+        self.recorder.add(data)
         with self._lock:
             self._payload = data
             self._payload_seq += 1
@@ -135,6 +146,7 @@ class CoachApp:
         self.v_tips = tk.StringVar(value=self.s.get("tips_level", "all"))
         self.v_rate = tk.DoubleVar(value=float(self.s.get("voice_rate", 1.0)))
         self.v_voice_name = tk.StringVar(value=self.s.get("voice_name", ""))
+        self.v_record = tk.BooleanVar(value=self.s.get("record_matches", True))
 
     def _label(self, parent, size=10, color=FG, bold=False, wrap=True, **kw):
         lbl = tk.Label(
@@ -240,12 +252,35 @@ class CoachApp:
             body, height=10, bg=BG_HOVER, highlightthickness=0
         )
         self.bar.pack(fill="x", pady=(4, 2))
-        self.lbl_need = self._label(body, 11, FG, bold=True, text="")
+        # Почему совет сменился («BKB собран — следующий: Blink»).
+        self.lbl_note = self._label(body, 9, CYAN, text="")
+        self.lbl_note.pack(fill="x")
+        # Прогресс: «Собрано 1 000 из 4 050 · не хватает 740».
+        self.lbl_need = self._label(body, 10, DIM, text="")
         self.lbl_need.pack(fill="x")
-        self.lbl_buy = self._label(body, 10, GREEN, text="")
-        self.lbl_buy.pack(fill="x", pady=(2, 0))
-        self.lbl_parts = self._label(body, 9, DIM, text="")
-        self.lbl_parts.pack(fill="x")
+        # Главное: одна фраза, что сделать в лавке прямо сейчас.
+        self.lbl_buy = self._label(body, 11, GREEN, bold=True, text="")
+        self.lbl_buy.pack(fill="x", pady=(4, 2))
+        # Список частей предмета: ✓ есть / ▶ купите сейчас / ○ позже.
+        self.shop_text = tk.Text(
+            body,
+            bg=BG,
+            fg=FG,
+            relief="flat",
+            wrap="word",
+            height=1,
+            font=(FONT, 10),
+            highlightthickness=0,
+            cursor="arrow",
+        )
+        self.shop_text.tag_configure("have", foreground=DIM)
+        self.shop_text.tag_configure(
+            "now", foreground=GREEN, font=(FONT, 10, "bold")
+        )
+        self.shop_text.tag_configure("later", foreground=FG)
+        self.shop_text.tag_configure("cost", foreground=GOLD)
+        self.shop_text.tag_configure("hint", foreground=DIM, font=(FONT, 9))
+        self.shop_text.pack(fill="x")
         # Срочные подсказки по способностям видны даже в компактном режиме.
         self.lbl_ab_live = self._label(body, 10, CYAN, bold=True, text="")
         self.lbl_ab_live.pack(fill="x", pady=(4, 0))
@@ -391,6 +426,15 @@ class CoachApp:
         m.add_command(label="История матчей", command=self.open_history)
         m.add_command(
             label="Папка с разборами матчей", command=self.open_reports_folder
+        )
+        m.add_checkbutton(
+            label="Записывать матчи",
+            variable=self.v_record,
+            command=self._apply_record,
+        )
+        m.add_command(
+            label="Папка с записями матчей",
+            command=lambda: self._open_folder(settings_mod.RECORD_DIR),
         )
         m.add_separator()
         m.add_command(
@@ -543,14 +587,22 @@ class CoachApp:
                 "tips_level": self.v_tips.get(),
                 "voice_rate": float(self.v_rate.get()),
                 "voice_name": self.v_voice_name.get(),
+                "record_matches": bool(self.v_record.get()),
                 "geometry": self.root.geometry(),
             }
         )
         settings_mod.save(self.s)
 
+    def _apply_record(self):
+        self.recorder.enabled = bool(self.v_record.get())
+        if not self.recorder.enabled:
+            self.recorder.close()
+        self._save()
+
     def quit(self):
         self._save()
         self.server.stop()
+        self.recorder.close()
         self.root.destroy()
 
     # ---------- основной цикл ----------
@@ -736,14 +788,17 @@ class CoachApp:
         )
 
     def open_reports_folder(self):
-        settings_mod.LOG_DIR.mkdir(parents=True, exist_ok=True)
+        self._open_folder(settings_mod.LOG_DIR)
+
+    def _open_folder(self, folder):
+        folder.mkdir(parents=True, exist_ok=True)
         try:
             if sys.platform == "win32":
-                os.startfile(str(settings_mod.LOG_DIR))
+                os.startfile(str(folder))
             else:
-                subprocess.Popen(["xdg-open", str(settings_mod.LOG_DIR)])
+                subprocess.Popen(["xdg-open", str(folder)])
         except OSError:
-            messagebox.showinfo("Папка с разборами", str(settings_mod.LOG_DIR))
+            messagebox.showinfo("Папка", str(folder))
 
     # ---------- советы тренера ----------
     def _coach_step(self):
@@ -814,6 +869,54 @@ class CoachApp:
         else:
             self.lbl_free.pack_forget()
 
+    SHOP_MARKS = {
+        shop_mod.HAVE: "✓",
+        shop_mod.NOW: "▶",
+        shop_mod.LATER: "○",
+        shop_mod.RECIPE: "○",
+    }
+    SHOP_TAGS = {
+        shop_mod.HAVE: "have",
+        shop_mod.NOW: "now",
+        shop_mod.LATER: "later",
+        shop_mod.RECIPE: "have",
+    }
+
+    def _render_shop(self, parts):
+        """Список частей предмета: что уже есть и что купить."""
+        t = self.shop_text
+        t.configure(state="normal")
+        t.delete("1.0", "end")
+        lines = 0
+        for part in parts:
+            tag = self.SHOP_TAGS[part.state]
+            t.insert("end", f"{self.SHOP_MARKS[part.state]} {part.title}", tag)
+            if part.state != shop_mod.HAVE:
+                t.insert("end", f"  {fmt_gold(part.cost)}", "cost")
+            t.insert("end", f"  — {part.state}\n", tag)
+            lines += 1
+        if any(p.is_recipe for p in parts):
+            t.insert(
+                "end",
+                "Рецепт — свиток в лавке: сам ничего не даёт, но собирает "
+                "части в предмет.\n",
+                "hint",
+            )
+            lines += 2
+        t.configure(state="disabled", height=max(1, lines))
+        if parts:
+            if not t.winfo_ismapped():
+                t.pack(fill="x", after=self.lbl_buy)
+        else:
+            t.pack_forget()
+
+    def _render_note(self, a):
+        """Причина смены совета: показываем минуту, потом прячем."""
+        if a.switch_note:
+            self._note, self._note_at = a.switch_note, time.time()
+        fresh = self._note and time.time() - self._note_at < 60
+        self.lbl_note.configure(text=f"↻ {self._note}" if fresh else "")
+
     def _render_abilities(self, a):
         self.lbl_ab_live.configure(
             text="\n".join("» " + x for x in a.ability_live)
@@ -848,7 +951,7 @@ class CoachApp:
                 self.lbl_slots,
                 self.lbl_need,
                 self.lbl_buy,
-                self.lbl_parts,
+                self.lbl_note,
                 self.lbl_what,
                 self.lbl_why,
                 self.lbl_situ,
@@ -892,7 +995,7 @@ class CoachApp:
             self.lbl_need.configure(text=a.message, fg=DIM)
             for lbl in (
                 self.lbl_buy,
-                self.lbl_parts,
+                self.lbl_note,
                 self.lbl_what,
                 self.lbl_why,
                 self.lbl_next,
@@ -912,7 +1015,7 @@ class CoachApp:
                 if a.start_bundle
                 else ""
             )
-            self.lbl_parts.configure(text="")
+            self._render_shop([])
             self.lbl_what.configure(
                 text="Реген, чтобы стоять на линии, и немного статов."
             )
@@ -927,7 +1030,7 @@ class CoachApp:
             self.lbl_target.configure(text=a.target_title)
             self.lbl_need.configure(text="", fg=FG)
             self.lbl_buy.configure(text="")
-            self.lbl_parts.configure(text="")
+            self._render_shop([])
             self.lbl_what.configure(text="")
             self.lbl_why.configure(text=a.why)
             self.lbl_next.configure(text="")
@@ -936,44 +1039,29 @@ class CoachApp:
             self.lbl_target.configure(
                 text=f"{a.target_title} — {fmt_gold(a.target_cost)}"
             )
+            lacking = max(0, a.remaining - gs.gold)
+            progress = (
+                f"Собрано {fmt_gold(a.owned_value)} из "
+                f"{fmt_gold(a.target_cost)} · "
+                if a.owned_value
+                else f"Цена {fmt_gold(a.target_cost)} · "
+            )
             if a.can_buy_full:
-                self.lbl_need.configure(
-                    text="Золота хватает — купите сейчас!", fg=GREEN
-                )
+                progress += "золота хватает"
             elif a.can_buy_with_sell:
-                self.lbl_need.configure(
-                    text=(
-                        "Хватит, если продать лишнее "
-                        f"(+{fmt_gold(a.free_up_refund)})"
-                    ),
-                    fg=GREEN,
+                progress += (
+                    f"хватит, если продать лишнее "
+                    f"(+{fmt_gold(a.free_up_refund)})"
                 )
             else:
-                self.lbl_need.configure(
-                    text=f"Не хватает: {fmt_gold(a.remaining - gs.gold)} "
-                    f"(осталось потратить {fmt_gold(a.remaining)})",
-                    fg=FG,
-                )
-            if a.can_buy_full:
-                self.lbl_buy.configure(
-                    text="Купить: " + ", ".join(t for t, _ in a.buy_now),
-                    fg=GREEN,
-                )
-            elif a.parts_no_room:
-                self.lbl_buy.configure(
-                    text="Части пока некуда положить: они останутся в тайнике "
-                    "и не будут "
-                    "работать. Копите и купите предмет целиком.",
-                    fg=ORANGE,
-                )
-            elif a.buy_now:
-                self.lbl_buy.configure(
-                    text="Можно купить уже сейчас: "
-                    + ", ".join(f"{t} ({fmt_gold(c)})" for t, c in a.buy_now),
-                    fg=GREEN,
-                )
-            else:
-                self.lbl_buy.configure(text="")
+                progress += f"не хватает {fmt_gold(lacking)}"
+            self.lbl_need.configure(text=progress, fg=DIM)
+            has_now = any(p.state == shop_mod.NOW for p in a.parts)
+            self.lbl_buy.configure(
+                text=a.next_step,
+                fg=ORANGE if a.parts_no_room else GREEN if has_now else FG,
+            )
+            self._render_shop(a.parts)
             if a.free_up:
                 refund = (
                     f" (+{fmt_gold(a.free_up_refund)} золота)"
@@ -983,9 +1071,6 @@ class CoachApp:
                 free_text = (
                     f"⚠ Сначала освободите место: {a.free_up_text}{refund}."
                 )
-            self.lbl_parts.configure(
-                text="Осталось собрать: " + ", ".join(t for t, _ in a.missing)
-            )
             self.lbl_what.configure(text=a.what)
             self.lbl_why.configure(text=a.why)
             self.lbl_next.configure(
@@ -1001,6 +1086,7 @@ class CoachApp:
             self._draw_bar(min(1.0, frac))
 
         self._set_free(free_text)
+        self._render_note(a)
         self._show_icon(a.target if a.status == "ok" else None)
         self.lbl_situ.configure(
             text="\n".join(f"⚠ {t}: {r}" for t, r in a.situational)
@@ -1094,16 +1180,29 @@ class CoachApp:
                 cooldown=25,
                 priority=PRIORITY_HIGH,
             )
+        now_parts = {p.title for p in a.parts if p.state == shop_mod.NOW}
         if a.target != self._spoken_target:
             self._spoken_target = a.target
             self._was_full = a.can_buy_full
+            self._spoken_parts = now_parts
             extra = ". Сначала освободите место" if a.free_up else ""
+            text = a.switch_note or f"Следующий предмет: {a.target_title}."
             self.speaker.say(
-                f"Следующий предмет: {a.target_title}{extra}",
+                text.rstrip(".") + extra,
                 key="target:" + a.target,
                 cooldown=60,
             )
             return
+        # Стало хватать на часть предмета — подскажем голосом один раз.
+        new_parts = now_parts - self._spoken_parts
+        if new_parts and not a.can_buy_full and not a.parts_no_room:
+            name = sorted(new_parts)[0]
+            self.speaker.say(
+                f"Можно купить {name}",
+                key=f"part:{a.target}:{name}",
+                cooldown=120,
+            )
+        self._spoken_parts = now_parts
         if a.can_buy_full and not self._was_full:
             extra = ", но сначала освободите слот" if a.free_up else ""
             self.speaker.say(

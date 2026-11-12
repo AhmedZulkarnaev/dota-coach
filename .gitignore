@@ -4,6 +4,7 @@ settings.json
 # Скачанные данные OpenDota, иконки, журналы матчей и ошибок
 data_cache/
 match_logs/
+recordings/
 coach.log*
 
 # Python
