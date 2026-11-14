@@ -20,17 +20,15 @@ from tkinter import filedialog, messagebox, ttk
 from . import __version__, gsi_installer
 from . import settings as settings_mod
 from . import shopping as shop_mod
-from .advisor import Advisor
 from .data_store import DataStore
 from .diagnostics import format_checks, run_checks
 from .dialogs import LAUNCH_HELP, NO_VOICE_HELP, EnemyPicker, TextWindow
+from .engine import CoachEngine, Frame
 from .game_state import parse
 from .gsi_server import GSIServer
 from .heroes_ru import short_name
 from .history import history_table, load_history
 from .icons import IconCache
-from .match_coach import MatchCoach
-from .match_log import MatchLog
 from .post_match import build_report, load_log
 from .recorder import MatchRecorder
 from .theme import (
@@ -47,7 +45,7 @@ from .theme import (
     RED,
     fmt_gold,
 )
-from .voice import PRIORITY_HIGH, PRIORITY_NORMAL, Speaker
+from .voice import Speaker
 
 LOG = logging.getLogger("dota_coach")
 
@@ -70,11 +68,6 @@ class CoachApp:
         self._data_dirty = True
         self.gs = parse(None)
         self.advice = None
-        self.enemies = []
-        self.match_id = ""
-        self._spoken_target = None
-        self._was_full = False
-        self._start_spoken_for = None
         self._drag = None
         self._log_note = ""
 
@@ -84,7 +77,9 @@ class CoachApp:
             self.s.get("cache_max_age_days", 3),
             on_update=self._mark_dirty,
         )
-        self.advisor = Advisor(self.store)
+        # Ядро решает, что советовать и говорить; окно только показывает.
+        self.engine = CoachEngine(self.store, settings_mod.LOG_DIR)
+        self.advisor = self.engine.advisor
         self.icons = IconCache(
             settings_mod.CACHE_DIR, self.store, on_ready=self._mark_dirty
         )
@@ -94,14 +89,11 @@ class CoachApp:
             rate=float(self.s.get("voice_rate", 1.0)),
             voice_name=self.s.get("voice_name", ""),
         )
-        self.coach = MatchCoach()
         self._coach_msg = None
         self._coach_at = 0.0
         self._voice_warned = False
         self._report_ready = None
         self._note, self._note_at = "", 0.0
-        self._spoken_parts: set[str] = set()
-        self.log = MatchLog(settings_mod.LOG_DIR)
         self.recorder = MatchRecorder(
             settings_mod.RECORD_DIR,
             enabled=bool(self.s.get("record_matches", True)),
@@ -631,23 +623,11 @@ class CoachApp:
         if new_data:
             self._seen_seq = seq
             self.gs = parse(payload)
-            if self.gs.match_id and self.gs.match_id != self.match_id:
-                self._new_match(self.gs.match_id)
-            if self.gs.hero_id > 0:
-                self.store.prefetch(self.gs.hero_id)
         if new_data or self._data_dirty:
             self._data_dirty = False
-            self.advice = self.advisor.advise(
-                self.gs, self.enemies, self.v_role.get()
-            )
-            saved = self.log.update(self.gs, self.advice)
-            if saved:
-                self._log_note = "Матч окончен — готовлю разбор…"
-                self._start_report(saved)
-            self._render()
-            self._voice()
-            if new_data:
-                self._coach_step()
+            self.engine.role_setting = self.v_role.get()
+            self.engine.tips_level = self.v_tips.get()
+            self._show_frame(self.engine.process(self.gs, new_data))
         self._render_coach()
         self._render_status(last_t)
         if self._report_ready:
@@ -801,22 +781,26 @@ class CoachApp:
             messagebox.showinfo("Папка", str(folder))
 
     # ---------- советы тренера ----------
-    def _coach_step(self):
-        role = (
-            self.advisor.role(self.gs, self.v_role.get())
-            if self.gs.hero_id > 0
-            else "core"
-        )
-        msg = self.coach.update(self.gs, role, self.v_tips.get())
-        if not msg:
-            return
-        self._coach_msg, self._coach_at = msg, time.time()
-        self.speaker.say(
-            msg.text,
-            key="coach:" + msg.text,
-            cooldown=120,
-            priority=PRIORITY_HIGH if msg.priority <= 1 else PRIORITY_NORMAL,
-        )
+    def _show_frame(self, frame: Frame) -> None:
+        """Показать то, что решило ядро, и передать фразы в голос."""
+        if frame.new_match:
+            self._log_note = ""
+            self._coach_msg = None
+        self.advice = frame.advice
+        if frame.match_log:
+            self._log_note = "Матч окончен — готовлю разбор…"
+            self._start_report(frame.match_log)
+        if frame.coach_message:
+            self._coach_msg, self._coach_at = frame.coach_message, time.time()
+        self._render()
+        if self.speaker.enabled:
+            for line in frame.voice:
+                self.speaker.say(
+                    line.text,
+                    key=line.key,
+                    cooldown=line.cooldown,
+                    priority=line.priority,
+                )
 
     def _render_coach(self):
         msg = self._coach_msg
@@ -836,14 +820,6 @@ class CoachApp:
         )
         if not self.lbl_coach.winfo_ismapped():
             self.lbl_coach.pack(in_=self.coach_anchor, fill="x", pady=(0, 6))
-
-    def _new_match(self, match_id):
-        self.match_id = match_id
-        self.enemies = []
-        self._spoken_target = None
-        self._was_full = False
-        self._log_note = ""
-        self._coach_msg = None
 
     # ---------- отрисовка ----------
     def _render_status(self, last_t):
@@ -1092,8 +1068,8 @@ class CoachApp:
             text="\n".join(f"⚠ {t}: {r}" for t, r in a.situational)
         )
         self.lbl_rem.configure(text="\n".join("• " + x for x in a.reminders))
-        if self.enemies:
-            names = [self.hero_name(s) for s in self.enemies]
+        if self.engine.enemies:
+            names = [self.hero_name(s) for s in self.engine.enemies]
             extra = f" — {a.enemy_summary}" if a.enemy_summary else ""
             self.lbl_enemies.configure(
                 text="Враги: " + ", ".join(names) + extra + "  (изменить)"
@@ -1153,71 +1129,16 @@ class CoachApp:
         h = self.advisor.heroes_by_short.get(short) or {}
         return h.get("localized_name") or short.replace("_", " ").title()
 
-    # ---------- голос ----------
-    def _voice(self):
-        a = self.advice
-        if not a or not self.speaker.enabled:
-            return
-        if (
-            a.status == "start"
-            and a.start_bundle
-            and self._start_spoken_for != self.match_id
-        ):
-            self._start_spoken_for = self.match_id
-            self.speaker.say(
-                "Стартовая закупка: "
-                + ", ".join(t for t, _ in a.start_bundle[:4])
-            )
-        if a.status != "ok":
-            return
-        low_hp = next(
-            (x for x in a.ability_live if x.startswith("Мало здоровья")), None
-        )
-        if low_hp:
-            self.speaker.say(
-                low_hp.split(" — ", 1)[-1],
-                key="lowhp",
-                cooldown=25,
-                priority=PRIORITY_HIGH,
-            )
-        now_parts = {p.title for p in a.parts if p.state == shop_mod.NOW}
-        if a.target != self._spoken_target:
-            self._spoken_target = a.target
-            self._was_full = a.can_buy_full
-            self._spoken_parts = now_parts
-            extra = ". Сначала освободите место" if a.free_up else ""
-            text = a.switch_note or f"Следующий предмет: {a.target_title}."
-            self.speaker.say(
-                text.rstrip(".") + extra,
-                key="target:" + a.target,
-                cooldown=60,
-            )
-            return
-        # Стало хватать на часть предмета — подскажем голосом один раз.
-        new_parts = now_parts - self._spoken_parts
-        if new_parts and not a.can_buy_full and not a.parts_no_room:
-            name = sorted(new_parts)[0]
-            self.speaker.say(
-                f"Можно купить {name}",
-                key=f"part:{a.target}:{name}",
-                cooldown=120,
-            )
-        self._spoken_parts = now_parts
-        if a.can_buy_full and not self._was_full:
-            extra = ", но сначала освободите слот" if a.free_up else ""
-            self.speaker.say(
-                f"Хватает золота на {a.target_title}{extra}",
-                key="full:" + a.target,
-                cooldown=45,
-            )
-        self._was_full = a.can_buy_full
-
     # ---------- враги ----------
     def open_enemies(self):
         EnemyPicker(self)
 
+    @property
+    def enemies(self):
+        return self.engine.enemies
+
     def set_enemies(self, shorts):
-        self.enemies = list(shorts)[:5]
+        self.engine.set_enemies(shorts)
         self._data_dirty = True
 
     # ---------- настройка GSI ----------

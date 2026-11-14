@@ -11,13 +11,14 @@ replay() прогоняет пакеты записи через советни�
 можно прогнать все записи и убедиться, что ничего не сломалось.
 """
 
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from .advisor import Advice, Advisor
 from .commitment import _real_items
+from .engine import CoachEngine, VoiceLine
 from .game_state import GameState, parse
-from .match_coach import MIN_GAP, MatchCoach
+from .match_coach import MIN_GAP
 from .recorder import Recording
 
 
@@ -42,6 +43,7 @@ class ReplayResult:
     packets: int = 0
     hero: str = ""
     duration: int = 0  # игровое время последнего пакета
+    voice: list[tuple[int, VoiceLine]] = field(default_factory=list)
 
 
 def fmt_clock(sec: int) -> str:
@@ -86,10 +88,12 @@ def replay(
     advisor: Advisor,
     enemies: Sequence[str] = (),
     role_setting: str = "auto",
-    coach_factory: Callable[[], MatchCoach] = MatchCoach,
 ) -> ReplayResult:
+    """Прогоняет запись через ядро программы — тем же путём, что и в игре."""
     result = ReplayResult()
-    coach = coach_factory()
+    engine = CoachEngine(advisor.store, advisor=advisor)
+    engine.role_setting = role_setting
+    started = False
     last_key: tuple[str, str] | None = None
     last_full = False
     last_coach_clock: int | None = None
@@ -107,17 +111,22 @@ def replay(
         gs = parse(payload)
         if not gs.valid or gs.spectating:
             continue
+        if not started:
+            engine.start_match(gs.match_id, enemies)
+            started = True
         result.packets += 1
         result.duration = gs.clock
         try:
-            a = advisor.advise(gs, enemies, role_setting)
-        except Exception as e:  # падение советника — тоже нарушение
+            frame = engine.process(gs)
+        except Exception as e:  # падение ядра — тоже нарушение
             violate(gs.clock, f"crash: {type(e).__name__}: {e}")
             continue
+        a = frame.advice
         if a.hero_title:
             result.hero = a.hero_title
         for problem in check_advice(gs, a, advisor):
             violate(gs.clock, problem)
+        result.voice += [(gs.clock, line) for line in frame.voice]
 
         if a.switch_note:
             result.events.append(Event(gs.clock, "смена", a.switch_note))
@@ -153,8 +162,7 @@ def replay(
             ):
                 result.events.append(ev)
 
-        role = advisor.role(gs, role_setting) if gs.hero_id > 0 else "core"
-        msg = coach.update(gs, role)
+        msg = frame.coach_message
         if msg:
             if (
                 last_coach_clock is not None
@@ -166,14 +174,21 @@ def replay(
     return result
 
 
-def format_result(result: ReplayResult) -> str:
+def format_result(result: ReplayResult, voice: bool = False) -> str:
+    """Текст для терминала. voice=True — показать и фразы голоса."""
     lines = [
         f"Герой: {result.hero or '?'} · пакетов: {result.packets} · "
         f"длительность: {fmt_clock(result.duration)}",
         "",
     ]
-    for e in result.events:
-        lines.append(f"{fmt_clock(e.clock):>7}  [{e.kind}] {e.text}")
+    events = [(e.clock, e.kind, e.text) for e in result.events]
+    if voice:
+        events += [(c, "голос", v.text) for c, v in result.voice]
+        events.sort(
+            key=lambda e: e[0]
+        )  # sort устойчив: порядок внутри секунды
+    for clock, kind, text in events:
+        lines.append(f"{fmt_clock(clock):>7}  [{kind}] {text}")
     lines.append("")
     if result.violations:
         lines.append(f"НАРУШЕНИЯ: {len(result.violations)}")

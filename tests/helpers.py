@@ -32,6 +32,9 @@ class FakeStore:
     def is_loading(self, hero_id):
         return False
 
+    def prefetch(self, hero_id):
+        """Всё уже загружено из фикстур."""
+
 
 def payload(clock, gold, items=(), stash=(), tp=True, state=IN_PROGRESS):
     slots = {f"slot{i}": {"name": "empty"} for i in range(9)}

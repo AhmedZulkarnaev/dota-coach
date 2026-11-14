@@ -9,7 +9,8 @@
     python tools/replay.py ФАЙЛ --to-app проиграть в запущенную программу
                                          (--speed 10 — в 10 раз быстрее)
 
-Дополнительно: --role core|support, --enemies lion,pudge,phantom_assassin.
+Дополнительно: --role core|support, --enemies lion,pudge,phantom_assassin,
+--voice — показать в ленте и фразы, которые программа сказала бы голосом.
 Код выхода 1, если найдены нарушения, — удобно для автоматических проверок.
 """
 
@@ -41,14 +42,21 @@ def recordings() -> list[Path]:
 def make_advisor(rec: Recording) -> Advisor:
     """Советник на данных из data_cache/; недостающее докачивает из сети."""
     store = DataStore(settings_mod.CACHE_DIR, max_age_days=10_000)
-    if not store.items or not store.heroes:
-        print("Скачиваю данные OpenDota…")
-        store._refresh_constants(force=False)
-    hero_ids = {parse(p).hero_id for _, p in rec.packets[-50:]} - {0}
-    for hero_id in hero_ids:
-        if store.get_popularity(hero_id) is None:
-            print(f"Скачиваю сборки героя {hero_id}…")
-            store._refresh_popularity(hero_id)
+    try:
+        if not store.items or not store.heroes:
+            print("Скачиваю данные OpenDota…")
+            store._refresh_constants(force=False)
+        hero_ids = {parse(p).hero_id for _, p in rec.packets[-50:]} - {0}
+        for hero_id in hero_ids:
+            if store.get_popularity(hero_id) is None:
+                print(f"Скачиваю сборки героя {hero_id}…")
+                store._refresh_popularity(hero_id)
+    except OSError as e:  # нет сети, а в data_cache/ данных ещё нет
+        sys.exit(
+            f"✗ Не удалось скачать данные OpenDota ({e}).\n"
+            "Проверьте интернет или один раз запустите программу — "
+            "она сохранит данные в data_cache/."
+        )
     return Advisor(store)
 
 
@@ -71,7 +79,7 @@ def run_check(path: Path, args: argparse.Namespace, brief: bool) -> int:
             print(
                 "(запись не закончена: матч ещё идёт или программа закрылась)"
             )
-        print(format_result(result))
+        print(format_result(result, voice=args.voice))
     return 1 if result.violations else 0
 
 
@@ -114,6 +122,9 @@ def main() -> None:
         "--role", default="auto", choices=["auto", "core", "support"]
     )
     ap.add_argument("--enemies", default="", help="через запятую: lion,pudge")
+    ap.add_argument(
+        "--voice", action="store_true", help="показать фразы голоса"
+    )
     args = ap.parse_args()
 
     files = recordings()
