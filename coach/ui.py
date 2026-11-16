@@ -276,6 +276,9 @@ class CoachApp:
         # Срочные подсказки по способностям видны даже в компактном режиме.
         self.lbl_ab_live = self._label(body, 10, CYAN, bold=True, text="")
         self.lbl_ab_live.pack(fill="x", pady=(4, 0))
+        # Что качать: видно и в компактном режиме.
+        self.lbl_skill = self._label(body, 10, DIM, text="")
+        self.lbl_skill.pack(fill="x", pady=(2, 0))
 
         self.detail = tk.Frame(body, bg=BG)
         self.detail.pack(fill="both", expand=True)
@@ -795,6 +798,7 @@ class CoachApp:
         if frame.coach_message:
             self._coach_msg, self._coach_at = frame.coach_message, time.time()
         self._render()
+        self._render_skill(frame.skill)
         if self.speaker.enabled:
             for line in frame.voice:
                 self.speaker.say(
@@ -894,6 +898,16 @@ class CoachApp:
             self._note, self._note_at = a.switch_note, time.time()
         fresh = self._note and time.time() - self._note_at < 60
         self.lbl_note.configure(text=f"↻ {self._note}" if fresh else "")
+
+    def _render_skill(self, hint):
+        if not hint or not self.gs.valid:
+            self.lbl_skill.configure(text="")
+            return
+        self.lbl_skill.configure(
+            text=f"⬆ {hint.text}. {hint.why}",
+            fg=GREEN if hint.learn_now else DIM,
+            font=(FONT, 10, "bold" if hint.learn_now else "normal"),
+        )
 
     def _render_abilities(self, a):
         self.lbl_ab_live.configure(

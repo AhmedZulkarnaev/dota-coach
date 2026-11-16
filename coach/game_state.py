@@ -65,6 +65,11 @@ class GameState:
     abilities: list[dict[str, Any]] = field(
         default_factory=list
     )  # [{name, level, can_cast, passive, cooldown, ultimate}]
+    # Уровни всего, во что вложены очки: способности, таланты, бонус к
+    # атрибутам (для подсказки прокачки).
+    ability_levels: dict[str, int] = field(default_factory=dict)
+    talent_tiers: set[int] = field(default_factory=set)  # 1–4: 10/15/20/25
+    talents_known: bool = False  # прислала ли игра данные о талантах
     has_shard: bool = (
         False  # Aghanim's Shard съедается при покупке, в слотах его нет
     )
@@ -157,6 +162,19 @@ def parse(payload: Any) -> GameState:
     gs.has_shard = bool(hero.get("aghanims_shard"))
     gs.has_scepter_buff = bool(hero.get("aghanims_scepter"))
 
+    # Другой вид данных о талантах: флажки talent_1…talent_8 у героя, по два
+    # на ступень (10, 15, 20, 25-й уровень).
+    for i in range(1, 9):
+        key = f"talent_{i}"
+        if key in hero:
+            gs.talents_known = True
+            if hero.get(key):
+                gs.talent_tiers.add((i + 1) // 2)
+    if "attributes_level" in hero:
+        gs.ability_levels["special_bonus_attributes"] = _int(
+            hero.get("attributes_level")
+        )
+
     gs.hp_pct = _int(hero.get("health_percent"), 100)
     gs.mana_pct = _int(hero.get("mana_percent"), 100)
     abilities = payload.get("abilities") or {}
@@ -167,9 +185,11 @@ def parse(payload: Any) -> GameState:
         if not isinstance(a, dict):
             continue
         name = a.get("name") or ""
-        if not name or name.startswith(
-            ("special_bonus", "generic_", "plus_", "ability_")
-        ):
+        if not name or name.startswith(("generic_", "plus_", "ability_")):
+            continue
+        gs.ability_levels[name] = _int(a.get("level"))
+        if name.startswith("special_bonus"):
+            gs.talents_known = True
             continue
         gs.abilities.append(
             {

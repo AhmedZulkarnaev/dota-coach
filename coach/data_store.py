@@ -7,9 +7,12 @@
   /constants/heroes           — герои: имя, роли, основной атрибут
   /constants/abilities        — способности: название, тип, описание (для
   подсказок)
+  /constants/ability_ids      — номер способности → имя (для прокачки)
   /heroes/{id}/itemPopularity — что покупают на герое по стадиям:
         start (до 0:00), early (0–10 мин), mid (10–25 мин, предметы от 2000),
         late (25+ мин, предметы от 4000). Данные по матчам высокого уровня.
+  /heroes/{id}/matches + /matches/{id} — порядок прокачки в 15 свежих
+        разобранных матчах сильных игроков (см. skill_builds.py).
 
 Всё сохраняется в data_cache/. Подсказки считаются только из локального кэша,
 поэтому сеть никогда не тормозит советы. Обновление идёт в фоне:
@@ -29,8 +32,12 @@ from pathlib import Path
 from typing import Any
 
 from . import USER_AGENT
+from .skill_builds import build_from_match
 
 BASE_URL = "https://api.opendota.com/api"
+SKILL_MATCHES = 15  # сколько матчей на героя брать для порядка прокачки
+SKILLS_MAX_AGE = 7 * 86400  # прокачка меняется редко — раз в неделю
+REQUEST_GAP = 1.1  # сек между запросами матчей: лимит OpenDota — 60 в минуту
 
 
 class DataStore:
@@ -49,7 +56,10 @@ class DataStore:
         self.items: dict[str, Any] = {}
         self.heroes: dict[str, Any] = {}
         self.abilities: dict[str, Any] = {}
+        self.ability_ids: dict[str, str] = {}
         self.popularity: dict[int, dict[str, Any]] = {}  # hero_id -> сборки
+        self.skills: dict[int, dict[str, Any]] = {}  # hero_id -> прокачка
+        self.request_gap = REQUEST_GAP
         self.meta: dict[str, Any] = {}
         self.status = "Данные ещё не загружены"
         self._lock = threading.Lock()
@@ -81,6 +91,7 @@ class DataStore:
         self.items = self._read("items") or {}
         self.heroes = self._read("heroes") or {}
         self.abilities = self._read("abilities") or {}
+        self.ability_ids = self._read("ability_ids") or {}
         if self.items and self.heroes:
             self.status = self._status_text()
 
@@ -117,6 +128,8 @@ class DataStore:
                     self._refresh_constants(force=True)
                 elif job[0] == "pop":
                     self._refresh_popularity(job[1])
+                elif job[0] == "skills":
+                    self._refresh_skills(job[1])
             except (urllib.error.URLError, OSError, ValueError) as e:
                 self.status = (
                     f"Нет связи с OpenDota ({type(e).__name__}). Работаю по "
@@ -159,6 +172,7 @@ class DataStore:
             or not self.items
             or not self.heroes
             or not self.abilities
+            or not self.ability_ids
         ):
             self.status = "Скачиваю предметы и героев…"
             self.on_update()
@@ -172,11 +186,17 @@ class DataStore:
             abilities = self._get("/constants/abilities")
             self._write("abilities", abilities)
             self.abilities = abilities
+            ability_ids = self._get("/constants/ability_ids")
+            if isinstance(ability_ids, dict):
+                self._write("ability_ids", ability_ids)
+                self.ability_ids = ability_ids
             if patch_changed:
-                # Новый патч — старые сборки выбрасываем.
-                for p in self.cache_dir.glob("pop_*.json"):
-                    p.unlink(missing_ok=True)
+                # Новый патч — старые сборки и прокачку выбрасываем.
+                for pattern in ("pop_*.json", "skills_*.json"):
+                    for p in self.cache_dir.glob(pattern):
+                        p.unlink(missing_ok=True)
                 self.popularity.clear()
+                self.skills.clear()
             self.meta.update(
                 {
                     "patch": latest or self.meta.get("patch", ""),
@@ -193,6 +213,48 @@ class DataStore:
             data["_fetched_at"] = time.time()
             self._write(f"pop_{hero_id}", data)
             self.popularity[hero_id] = data
+        self.status = self._status_text()
+        self.on_update()
+
+    def _refresh_skills(self, hero_id):
+        """Порядок прокачки героя по свежим разобранным матчам."""
+        if not self.ability_ids:
+            ids = self._get("/constants/ability_ids")
+            if isinstance(ids, dict):
+                self._write("ability_ids", ids)
+                self.ability_ids = ids
+        matches = self._get(f"/heroes/{int(hero_id)}/matches")
+        match_ids = [
+            m["match_id"]
+            for m in (matches if isinstance(matches, list) else [])
+            if isinstance(m, dict) and m.get("match_id")
+        ][: SKILL_MATCHES * 2]  # часть матчей может быть не разобрана
+        builds: list[list[str]] = []
+        for match_id in match_ids:
+            if len(builds) >= SKILL_MATCHES:
+                break
+            self.status = (
+                f"Собираю прокачку героя: {len(builds)} из {SKILL_MATCHES} "
+                "матчей…"
+            )
+            self.on_update()
+            time.sleep(self.request_gap)
+            try:
+                match = self._get(f"/matches/{int(match_id)}")
+            except urllib.error.HTTPError as e:
+                if e.code == 429:  # лимит запросов — продолжим в другой раз
+                    break
+                continue
+            build = build_from_match(match, int(hero_id), self.ability_ids)
+            if build:
+                builds.append(build)
+        data = {
+            "builds": builds,
+            "patch": self.meta.get("patch", ""),
+            "_fetched_at": time.time(),
+        }
+        self._write(f"skills_{hero_id}", data)
+        self.skills[hero_id] = data
         self.status = self._status_text()
         self.on_update()
 
@@ -215,8 +277,27 @@ class DataStore:
             self._enqueue(("pop", hero_id))
         return data
 
+    def get_skill_builds(self, hero_id: int) -> list[list[str]] | None:
+        """Порядок прокачки в матчах сильных игроков на герое (из кэша).
+
+        Если данных нет или они старые — запускает фоновую загрузку.
+        """
+        if not hero_id:
+            return None
+        data = self.skills.get(hero_id)
+        if data is None:
+            data = self._read(f"skills_{hero_id}")
+            if data:
+                self.skills[hero_id] = data
+        age = time.time() - (data or {}).get("_fetched_at", 0)
+        if data is None or age > SKILLS_MAX_AGE:
+            self._enqueue(("skills", hero_id))
+        builds = (data or {}).get("builds")
+        return builds if isinstance(builds, list) else None
+
     def prefetch(self, hero_id: int) -> None:
         self.get_popularity(hero_id)
+        self.get_skill_builds(hero_id)
 
     def get_benchmarks(
         self, hero_id: int, timeout: float = 10

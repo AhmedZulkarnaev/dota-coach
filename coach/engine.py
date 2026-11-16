@@ -3,6 +3,7 @@
 Ядро ничего не рисует и ничего не произносит само. Оно решает:
   • что посоветовать (советник, верность цели, список покупок);
   • что сказать тренеру по стадии матча;
+  • что качать на новом уровне (по матчам сильных игроков);
   • какие фразы произнести голосом и с какой важностью;
   • когда матч закончился и можно строить разбор.
 
@@ -21,7 +22,9 @@ from .advisor import Advice, Advisor
 from .game_state import GameState
 from .match_coach import CoachMessage, MatchCoach
 from .match_log import MatchLog
-from .voice import PRIORITY_HIGH, PRIORITY_NORMAL
+from .skill_builds import SkillHint, Step, consensus, skill_hint
+from .speech_ru import speakable
+from .voice import PRIORITY_HIGH, PRIORITY_LOW, PRIORITY_NORMAL
 
 
 @dataclass
@@ -42,6 +45,7 @@ class Frame:
     advice: Advice
     new_match: bool = False
     coach_message: CoachMessage | None = None  # новый совет тренера
+    skill: SkillHint | None = None  # что качать
     voice: list[VoiceLine] = field(default_factory=list)
     match_log: Path | None = None  # матч окончен, журнал сохранён
 
@@ -65,6 +69,8 @@ class CoachEngine:
         self.tips_level = "all"  # "all" | "main" | "off"
         self.match_id = ""
         self._enemies: list[str] = []
+        self._plan: tuple[int, int, list[Step]] = (0, 0, [])
+        self._spoken_skill = ""  # последнее сказанное очко прокачки
         self._reset_voice()
 
     # ---------- настройки матча ----------
@@ -107,6 +113,10 @@ class CoachEngine:
         if self.log is not None:
             frame.match_log = self.log.update(gs, advice)
         frame.voice = self._advice_voice(advice)
+        frame.skill = skill_hint(
+            gs, self.skill_plan(gs.hero_id), self.store.abilities
+        )
+        frame.voice += self._skill_voice(frame.skill)
         if new_packet:
             msg = self.coach.update(gs, self.role(gs), self.tips_level)
             if msg:
@@ -125,12 +135,39 @@ class CoachEngine:
                 )
         return frame
 
+    # ---------- прокачка ----------
+    def skill_plan(self, hero_id: int) -> list[Step]:
+        """План прокачки героя; пересчитывается, только когда данные новые."""
+        get = getattr(self.store, "get_skill_builds", None)
+        builds = get(hero_id) if get and hero_id > 0 else None
+        if not builds:
+            return []
+        key = (hero_id, id(builds))
+        if self._plan[:2] != key:
+            self._plan = (*key, consensus(builds))
+        return self._plan[2]
+
+    def _skill_voice(self, hint: SkillHint | None) -> list[VoiceLine]:
+        """Одна фраза на каждое новое очко прокачки — когда его можно взять."""
+        if not hint or not hint.learn_now:
+            return []
+        key = f"skill:{hint.step.level}:{hint.step.name}"
+        if key == self._spoken_skill:
+            return []
+        self._spoken_skill = key
+        if hint.step.is_talent:
+            text = f"Новый талант: {speakable(hint.title)}"
+        else:
+            text = f"Качайте {speakable(hint.title)}"
+        return [VoiceLine(text, key=key, cooldown=600, priority=PRIORITY_LOW)]
+
     # ---------- голос ----------
     def _reset_voice(self) -> None:
         self._spoken_target: str | None = None
         self._was_full = False
         self._spoken_parts: set[str] = set()
         self._start_spoken = False
+        self._spoken_skill = ""
 
     def _advice_voice(self, a: Advice) -> list[VoiceLine]:
         """Что сказать по совету. Помнит сказанное, чтобы не повторяться."""
