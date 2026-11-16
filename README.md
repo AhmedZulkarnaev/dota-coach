@@ -12,7 +12,7 @@
 **[⬇ Скачать последнюю версию](https://github.com/AhmedZulkarnaev/dota-coach/releases/latest)** · [Установка](#установка-один-раз-5-минут) · [Как это работает](#как-программа-выбирает-предмет) · [Помочь проекту](CONTRIBUTING.md)
 
 <!-- version -->
-> **Текущая версия: 0.7.0.dev4** — в разработке, в ветке `main`. Стабильная версия — [последний релиз](https://github.com/AhmedZulkarnaev/dota-coach/releases/latest). Что нового — в [CHANGELOG](CHANGELOG.md).
+> **Текущая версия: 0.7.0** — стабильная, [релиз v0.7.0](https://github.com/AhmedZulkarnaev/dota-coach/releases/tag/v0.7.0). Что нового — в [CHANGELOG](CHANGELOG.md).
 <!-- /version -->
 
 Программа следит за вашим матчем в реальном времени и подсказывает:
