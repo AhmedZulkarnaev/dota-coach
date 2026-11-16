@@ -1,0 +1,163 @@
+{
+  "_about": "Угрозы от состава врагов. groups — признаки героев: по роли OpenDota (role) или списком (heroes). counters — ситуативные предметы: when — сколько героев каждого признака нужно минимум; внутри одной exclusive-группы срабатывает только первое правило; core/support — что советовать этой роли (нет — не советовать). В тексте: {disabler} — число героев, {evasion_names} — их имена. reminders — напоминания тем же способом.",
+  "groups": {
+    "disabler": {
+      "label": "контроль",
+      "role": "Disabler",
+      "count": true
+    },
+    "nuker": {
+      "label": "магия",
+      "role": "Nuker",
+      "count": true
+    },
+    "invis": {
+      "label": "невидимость",
+      "heroes": [
+        "bounty_hunter",
+        "clinkz",
+        "invoker",
+        "mirana",
+        "nyx_assassin",
+        "riki",
+        "templar_assassin",
+        "treant",
+        "weaver"
+      ]
+    },
+    "evasion": {
+      "label": "уклонение",
+      "heroes": [
+        "phantom_assassin",
+        "windrunner"
+      ]
+    },
+    "illusions": {
+      "label": "иллюзии",
+      "heroes": [
+        "chaos_knight",
+        "meepo",
+        "naga_siren",
+        "phantom_lancer",
+        "spectre",
+        "terrorblade"
+      ]
+    },
+    "healing": {
+      "label": "лечение",
+      "heroes": [
+        "abaddon",
+        "alchemist",
+        "chen",
+        "dazzle",
+        "enchantress",
+        "huskar",
+        "juggernaut",
+        "life_stealer",
+        "necrolyte",
+        "omniknight",
+        "oracle",
+        "treant",
+        "undying",
+        "warlock",
+        "wisp",
+        "witch_doctor"
+      ]
+    }
+  },
+  "counters": [
+    {
+      "exclusive": "magic",
+      "when": {
+        "disabler": 3
+      },
+      "core": {
+        "item": "black_king_bar",
+        "strength": 1.0,
+        "reason": "У врагов {disabler} героя с контролем (оглушения, хексы, сайленсы). BKB даёт иммунитет к большинству заклинаний — без него в драке вас просто застанят и убьют."
+      },
+      "support": {
+        "item": "glimmer_cape",
+        "strength": 0.8,
+        "reason": "У врагов много контроля и магии. Glimmer Cape делает вас (или союзника) невидимым и даёт защиту от магии — главный спасательный предмет саппорта."
+      }
+    },
+    {
+      "exclusive": "magic",
+      "when": {
+        "disabler": 2,
+        "nuker": 3
+      },
+      "core": {
+        "item": "black_king_bar",
+        "strength": 1.0,
+        "reason": "У врагов {disabler} героя с контролем (оглушения, хексы, сайленсы). BKB даёт иммунитет к большинству заклинаний — без него в драке вас просто застанят и убьют."
+      },
+      "support": {
+        "item": "glimmer_cape",
+        "strength": 0.8,
+        "reason": "У врагов много контроля и магии. Glimmer Cape делает вас (или союзника) невидимым и даёт защиту от магии — главный спасательный предмет саппорта."
+      }
+    },
+    {
+      "exclusive": "magic",
+      "when": {
+        "nuker": 3
+      },
+      "core": {
+        "item": "black_king_bar",
+        "strength": 0.8,
+        "reason": "У врагов {nuker} героя с сильной магией. BKB спасает от магического урона в драках."
+      },
+      "support": {
+        "item": "glimmer_cape",
+        "strength": 0.7,
+        "reason": "У врагов много магического урона: Glimmer Cape даёт сопротивление магии и невидимость, чтобы спастись."
+      }
+    },
+    {
+      "when": {
+        "evasion": 1
+      },
+      "core": {
+        "item": "monkey_king_bar",
+        "strength": 0.9,
+        "reason": "У врагов есть уклонение от атак ({evasion_names}). Monkey King Bar даёт атакам точность — без него вы будете промахиваться."
+      }
+    },
+    {
+      "when": {
+        "illusions": 1
+      },
+      "core": {
+        "item": "maelstrom",
+        "strength": 0.5,
+        "reason": "У врагов иллюзии/клоны. Maelstrom бьёт молниями по нескольким целям и помогает быстро сносить иллюзии."
+      }
+    },
+    {
+      "when": {
+        "healing": 1
+      },
+      "core": {
+        "item": "spirit_vessel",
+        "strength": 0.5,
+        "reason": "Во вражеской команде есть лечение. Spirit Vessel снижает лечение и регенерацию цели — враги перестанут «отхиливаться»."
+      },
+      "support": {
+        "item": "spirit_vessel",
+        "strength": 0.8,
+        "reason": "Во вражеской команде есть лечение. Spirit Vessel снижает лечение и регенерацию цели — враги перестанут «отхиливаться»."
+      }
+    }
+  ],
+  "reminders": [
+    {
+      "when": {
+        "invis": 1
+      },
+      "core": "У врагов невидимость: держите Dust of Appearance, попросите саппортов про Sentry Ward.",
+      "support": "У врагов невидимость: держите Dust of Appearance, ставьте Sentry Ward."
+    }
+  ]
+}

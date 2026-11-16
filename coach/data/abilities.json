@@ -1,0 +1,691 @@
+{
+  "_about": "Советы по способностям. tips — по героям: внутреннее имя способности (как присылает Dota) → совет и теги. Теги: disable, slow, nuke, escape, defend, heal, buff, summon, passive, ult. defend/escape подсказываются при малом здоровье. generic — общий совет по главному тегу (порядок — tag_order), keywords — как угадать тег по английскому описанию из OpenDota (регулярные выражения).",
+  "tips": {
+    "Ursa": {
+      "ursa_earthshock": {
+        "text": "Прыгайте прямо на врага: замедление не даст ему убежать, пока вы бьёте.",
+        "tags": [
+          "slow"
+        ]
+      },
+      "ursa_overpower": {
+        "text": "Включайте перед атакой героя или Рошана — следующие удары будут очень быстрыми.",
+        "tags": [
+          "buff"
+        ]
+      },
+      "ursa_fury_swipes": {
+        "text": "Пассивная: каждый удар по одной цели бьёт сильнее. Не переключайтесь между целями.",
+        "tags": [
+          "passive"
+        ]
+      },
+      "ursa_enrage": {
+        "text": "Резко снижает получаемый урон и снимает часть эффектов. Жмите, когда вас начали бить.",
+        "tags": [
+          "defend",
+          "ult"
+        ]
+      }
+    },
+    "Juggernaut": {
+      "juggernaut_blade_fury": {
+        "text": "Вращение с иммунитетом к магии: защита от контроля, побег или урон по линии крипов.",
+        "tags": [
+          "defend",
+          "escape"
+        ]
+      },
+      "juggernaut_healing_ward": {
+        "text": "Ставьте за спиной в драке или после размена — лечит союзников рядом.",
+        "tags": [
+          "heal"
+        ]
+      },
+      "juggernaut_blade_dance": {
+        "text": "Пассивная: шанс критического удара.",
+        "tags": [
+          "passive"
+        ]
+      },
+      "juggernaut_omni_slash": {
+        "text": "Используйте, когда рядом с целью мало крипов и героев — иначе удары разлетятся.",
+        "tags": [
+          "ult"
+        ]
+      }
+    },
+    "Phantom Assassin": {
+      "phantom_assassin_stifling_dagger": {
+        "text": "Кинжал с замедлением: добивайте крипов издалека и догоняйте убегающих.",
+        "tags": [
+          "nuke",
+          "slow"
+        ]
+      },
+      "phantom_assassin_phantom_strike": {
+        "text": "Мгновенный прыжок к цели: догнать врага или сбежать к своему крипу.",
+        "tags": [
+          "escape"
+        ]
+      },
+      "phantom_assassin_blur": {
+        "text": "Уклонение от атак. Держите для отхода, если есть активная часть.",
+        "tags": [
+          "defend",
+          "passive"
+        ]
+      },
+      "phantom_assassin_coup_de_grace": {
+        "text": "Пассивная: шанс огромного критического удара.",
+        "tags": [
+          "passive",
+          "ult"
+        ]
+      }
+    },
+    "Wraith King": {
+      "skeleton_king_hellfire_blast": {
+        "text": "Оглушение: используйте, чтобы начать драку или не дать врагу уйти.",
+        "tags": [
+          "disable"
+        ]
+      },
+      "skeleton_king_vampiric_spirit": {
+        "text": "Вампиризм и призыв скелетов: включайте в драке и на фарме.",
+        "tags": [
+          "buff"
+        ]
+      },
+      "skeleton_king_vampiric_aura": {
+        "text": "Пассивный вампиризм: лечит вас ударами.",
+        "tags": [
+          "passive"
+        ]
+      },
+      "skeleton_king_mortal_strike": {
+        "text": "Пассивная: шанс критического удара.",
+        "tags": [
+          "passive"
+        ]
+      },
+      "skeleton_king_reincarnation": {
+        "text": "После смерти вы воскреснете на месте — следите за маной, чтобы ульт сработал.",
+        "tags": [
+          "passive",
+          "ult"
+        ]
+      }
+    },
+    "Sniper": {
+      "sniper_shrapnel": {
+        "text": "Ставьте на путь врага или на крипов — замедляет и наносит урон по площади.",
+        "tags": [
+          "nuke",
+          "slow"
+        ]
+      },
+      "sniper_headshot": {
+        "text": "Пассивная: атаки иногда отталкивают и замедляют.",
+        "tags": [
+          "passive"
+        ]
+      },
+      "sniper_take_aim": {
+        "text": "Увеличивает дальность — бейте из-за спин союзников.",
+        "tags": [
+          "buff"
+        ]
+      },
+      "sniper_assassinate": {
+        "text": "Добивание издалека врага с низким здоровьем.",
+        "tags": [
+          "nuke",
+          "ult"
+        ]
+      }
+    },
+    "Drow Ranger": {
+      "drow_ranger_frost_arrows": {
+        "text": "Включите автокаст — каждая стрела замедляет.",
+        "tags": [
+          "slow"
+        ]
+      },
+      "drow_ranger_wave_of_silence": {
+        "text": "Отталкивает и заставляет молчать: отбросьте врага, который прыгнул на вас.",
+        "tags": [
+          "disable",
+          "escape"
+        ]
+      },
+      "drow_ranger_multishot": {
+        "text": "Залп стрел по площади: фарм пачек и урон в драке.",
+        "tags": [
+          "nuke"
+        ]
+      },
+      "drow_ranger_marksmanship": {
+        "text": "Пассивная: сильный бонус к ловкости, пока враги не рядом.",
+        "tags": [
+          "passive",
+          "ult"
+        ]
+      }
+    },
+    "Lion": {
+      "lion_impale": {
+        "text": "Шипы оглушают всех на линии: цельтесь через нескольких врагов.",
+        "tags": [
+          "disable"
+        ]
+      },
+      "lion_voodoo": {
+        "text": "Превращение в лягушку: выключите самого опасного врага в начале драки.",
+        "tags": [
+          "disable"
+        ]
+      },
+      "lion_mana_drain": {
+        "text": "Тянет ману. Можно снять с себя иллюзии и щиты врагов. Пополняйте ману между драками.",
+        "tags": [
+          "slow"
+        ]
+      },
+      "lion_finger_of_death": {
+        "text": "Огромный урон по одной цели — добивайте, а не начинайте им драку.",
+        "tags": [
+          "nuke",
+          "ult"
+        ]
+      }
+    },
+    "Crystal Maiden": {
+      "crystal_maiden_crystal_nova": {
+        "text": "Замедление по площади: помогает догнать или убежать.",
+        "tags": [
+          "nuke",
+          "slow"
+        ]
+      },
+      "crystal_maiden_frostbite": {
+        "text": "Сковывает врага на месте: ловите убегающих или выключайте атакующего керри.",
+        "tags": [
+          "disable"
+        ]
+      },
+      "crystal_maiden_brilliance_aura": {
+        "text": "Пассивная: мана для команды.",
+        "tags": [
+          "passive"
+        ]
+      },
+      "crystal_maiden_freezing_field": {
+        "text": "Встаньте за союзниками в безопасном месте: вас легко прервать.",
+        "tags": [
+          "ult"
+        ]
+      }
+    },
+    "Pudge": {
+      "pudge_meat_hook": {
+        "text": "Крюк: цельтесь туда, где враг будет, и из тумана войны. Не бросайте через крипов.",
+        "tags": [
+          "disable"
+        ]
+      },
+      "pudge_rot": {
+        "text": "Включайте рядом с врагами — урон и замедление. Выключайте, когда отходите.",
+        "tags": [
+          "nuke",
+          "slow"
+        ]
+      },
+      "pudge_dismember": {
+        "text": "Удерживает цель — используйте сразу после крюка.",
+        "tags": [
+          "disable",
+          "ult"
+        ]
+      }
+    },
+    "Axe": {
+      "axe_berserkers_call": {
+        "text": "Заставляет врагов бить вас — прыгайте в толпу, но сначала проверьте своё здоровье.",
+        "tags": [
+          "disable"
+        ]
+      },
+      "axe_battle_hunger": {
+        "text": "Повесьте на врага на линии — он теряет здоровье, пока не убьёт крипа.",
+        "tags": [
+          "nuke"
+        ]
+      },
+      "axe_counter_helix": {
+        "text": "Пассивная: крутится, когда вас бьют.",
+        "tags": [
+          "passive"
+        ]
+      },
+      "axe_culling_blade": {
+        "text": "Мгновенно добивает врага с низким здоровьем — следите за полоской HP врага.",
+        "tags": [
+          "nuke",
+          "ult"
+        ]
+      }
+    },
+    "Sven": {
+      "sven_storm_bolt": {
+        "text": "Оглушение по площади: начните драку или остановите убегающего.",
+        "tags": [
+          "disable"
+        ]
+      },
+      "sven_great_cleave": {
+        "text": "Пассивная: урон по всем врагам перед вами.",
+        "tags": [
+          "passive"
+        ]
+      },
+      "sven_warcry": {
+        "text": "Скорость и броня команде: жмите в начале драки или для отхода.",
+        "tags": [
+          "buff",
+          "defend"
+        ]
+      },
+      "sven_gods_strength": {
+        "text": "Огромный урон: включайте прямо перед драками и для быстрого фарма.",
+        "tags": [
+          "buff",
+          "ult"
+        ]
+      }
+    },
+    "Lina": {
+      "lina_dragon_slave": {
+        "text": "Урон по линии: бейте врага на линии и фармите крипов.",
+        "tags": [
+          "nuke"
+        ]
+      },
+      "lina_light_strike_array": {
+        "text": "Оглушение с задержкой: цельтесь в стоящего или уже оглушённого врага.",
+        "tags": [
+          "disable",
+          "nuke"
+        ]
+      },
+      "lina_fiery_soul": {
+        "text": "Пассивная: каждое заклинание ускоряет атаки.",
+        "tags": [
+          "passive"
+        ]
+      },
+      "lina_laguna_blade": {
+        "text": "Огромный урон по одной цели — добивайте врага.",
+        "tags": [
+          "nuke",
+          "ult"
+        ]
+      }
+    },
+    "Zeus": {
+      "zuus_arc_lightning": {
+        "text": "Дешёвый урон с перескоком: фарм и размены.",
+        "tags": [
+          "nuke"
+        ]
+      },
+      "zuus_lightning_bolt": {
+        "text": "Урон и короткое оглушение, показывает невидимых рядом.",
+        "tags": [
+          "disable",
+          "nuke"
+        ]
+      },
+      "zuus_heavenly_jump": {
+        "text": "Прыжок назад с замедлением врагов — главный способ сбежать.",
+        "tags": [
+          "escape"
+        ]
+      },
+      "zuus_thundergods_wrath": {
+        "text": "Бьёт всех врагов на карте: добивайте убегающих с низким здоровьем.",
+        "tags": [
+          "nuke",
+          "ult"
+        ]
+      }
+    },
+    "Witch Doctor": {
+      "witch_doctor_paralyzing_cask": {
+        "text": "Отскакивающее оглушение: лучше всего, когда враги стоят рядом с крипами.",
+        "tags": [
+          "disable"
+        ]
+      },
+      "witch_doctor_voodoo_restoration": {
+        "text": "Лечит союзников вокруг, тратит ману. Выключайте, когда не нужно.",
+        "tags": [
+          "heal"
+        ]
+      },
+      "witch_doctor_maledict": {
+        "text": "Проклятие по площади: урон растёт от уже полученного. Хорошо в начале драки.",
+        "tags": [
+          "nuke"
+        ]
+      },
+      "witch_doctor_death_ward": {
+        "text": "Стойте в безопасности за союзниками — вас легко прервать.",
+        "tags": [
+          "ult"
+        ]
+      }
+    },
+    "Dragon Knight": {
+      "dragon_knight_breathe_fire": {
+        "text": "Урон по конусу и меньше урона от врагов: фарм и драки.",
+        "tags": [
+          "nuke"
+        ]
+      },
+      "dragon_knight_dragon_tail": {
+        "text": "Оглушение: прерывает заклинания и держит цель.",
+        "tags": [
+          "disable"
+        ]
+      },
+      "dragon_knight_dragon_blood": {
+        "text": "Пассивная: регенерация и броня.",
+        "tags": [
+          "passive"
+        ]
+      },
+      "dragon_knight_elder_dragon_form": {
+        "text": "Включайте для драк и снятия башен.",
+        "tags": [
+          "buff",
+          "ult"
+        ]
+      }
+    },
+    "Bristleback": {
+      "bristleback_viscous_nasal_goo": {
+        "text": "Замедляет и снимает броню: не дайте врагу уйти.",
+        "tags": [
+          "slow"
+        ]
+      },
+      "bristleback_quill_spray": {
+        "text": "Главный урон: жмите часто, урон растёт с каждым попаданием.",
+        "tags": [
+          "nuke"
+        ]
+      },
+      "bristleback_bristleback": {
+        "text": "Поворачивайтесь к врагам спиной — урон сзади сильно снижается.",
+        "tags": [
+          "defend",
+          "passive"
+        ]
+      },
+      "bristleback_warpath": {
+        "text": "Пассивная: каждое заклинание ускоряет вас и усиливает атаки.",
+        "tags": [
+          "passive",
+          "ult"
+        ]
+      }
+    },
+    "Earthshaker": {
+      "earthshaker_fissure": {
+        "text": "Стена и оглушение: перекройте врагу путь отхода.",
+        "tags": [
+          "disable"
+        ]
+      },
+      "earthshaker_enchant_totem": {
+        "text": "Сильный удар; с Aghanim's Scepter — прыжок в толпу.",
+        "tags": [
+          "buff"
+        ]
+      },
+      "earthshaker_aftershock": {
+        "text": "Пассивная: каждое заклинание оглушает врагов вокруг.",
+        "tags": [
+          "passive"
+        ]
+      },
+      "earthshaker_echo_slam": {
+        "text": "Лучше всего в толпе врагов: чем больше целей, тем больше урон. Хорошо с Blink Dagger.",
+        "tags": [
+          "nuke",
+          "ult"
+        ]
+      }
+    },
+    "Faceless Void": {
+      "faceless_void_time_walk": {
+        "text": "Рывок, который отменяет недавно полученный урон: для побега и нападения.",
+        "tags": [
+          "defend",
+          "escape"
+        ]
+      },
+      "faceless_void_time_dilation": {
+        "text": "Замораживает перезарядки врагов вокруг — жмите в начале драки.",
+        "tags": [
+          "disable"
+        ]
+      },
+      "faceless_void_time_lock": {
+        "text": "Пассивная: шанс оглушить ударом.",
+        "tags": [
+          "passive"
+        ]
+      },
+      "faceless_void_chronosphere": {
+        "text": "Останавливает всех внутри (и союзников!). Ловите как можно больше врагов.",
+        "tags": [
+          "disable",
+          "ult"
+        ]
+      }
+    },
+    "Anti-Mage": {
+      "antimage_mana_break": {
+        "text": "Пассивная: атаки сжигают ману врага.",
+        "tags": [
+          "passive"
+        ]
+      },
+      "antimage_blink": {
+        "text": "Короткий телепорт: побег и быстрый переход между лагерями.",
+        "tags": [
+          "escape"
+        ]
+      },
+      "antimage_counterspell": {
+        "text": "Отражает направленное заклинание: жмите, когда в вас летит способность.",
+        "tags": [
+          "defend"
+        ]
+      },
+      "antimage_mana_void": {
+        "text": "Урон тем больше, чем меньше маны у цели — используйте после атак.",
+        "tags": [
+          "nuke",
+          "ult"
+        ]
+      }
+    },
+    "Shadow Shaman": {
+      "shadow_shaman_ether_shock": {
+        "text": "Урон по конусу: размены на линии и добивание.",
+        "tags": [
+          "nuke"
+        ]
+      },
+      "shadow_shaman_voodoo": {
+        "text": "Превращение в животное: выключите опасного врага.",
+        "tags": [
+          "disable"
+        ]
+      },
+      "shadow_shaman_shackles": {
+        "text": "Удерживает цель, но и вас тоже — стойте в безопасности.",
+        "tags": [
+          "disable"
+        ]
+      },
+      "shadow_shaman_mass_serpent_ward": {
+        "text": "Змеи сносят башни и окружают героев — ставьте вокруг врага.",
+        "tags": [
+          "ult"
+        ]
+      }
+    },
+    "Legion Commander": {
+      "legion_commander_overwhelming_odds": {
+        "text": "Урон по площади: фарм пачек и ускорение для догона.",
+        "tags": [
+          "nuke"
+        ]
+      },
+      "legion_commander_press_the_attack": {
+        "text": "Лечение и скорость атаки: снимает негативные эффекты.",
+        "tags": [
+          "defend",
+          "heal"
+        ]
+      },
+      "legion_commander_moment_of_courage": {
+        "text": "Пассивная: иногда отвечает ударом с вампиризмом.",
+        "tags": [
+          "passive"
+        ]
+      },
+      "legion_commander_duel": {
+        "text": "Начинайте дуэль, только если уверены, что победите: проверьте здоровье врага.",
+        "tags": [
+          "disable",
+          "ult"
+        ]
+      }
+    },
+    "Viper": {
+      "viper_poison_attack": {
+        "text": "Включите автокаст на героев — замедляет и снижает сопротивление магии.",
+        "tags": [
+          "slow"
+        ]
+      },
+      "viper_nethertoxin": {
+        "text": "Ставьте под врага: урон и отключение пассивных способностей.",
+        "tags": [
+          "nuke"
+        ]
+      },
+      "viper_corrosive_skin": {
+        "text": "Пассивная: вредит тем, кто вас бьёт.",
+        "tags": [
+          "passive"
+        ]
+      },
+      "viper_viper_strike": {
+        "text": "Сильное замедление и урон по одной цели: не дайте ей уйти.",
+        "tags": [
+          "slow",
+          "ult"
+        ]
+      }
+    },
+    "Ogre Magi": {
+      "ogre_magi_fireblast": {
+        "text": "Оглушение: используйте сразу, когда враг подходит.",
+        "tags": [
+          "disable"
+        ]
+      },
+      "ogre_magi_ignite": {
+        "text": "Урон и замедление по цели.",
+        "tags": [
+          "nuke",
+          "slow"
+        ]
+      },
+      "ogre_magi_bloodlust": {
+        "text": "Повесьте на союзного керри перед драками и фармом.",
+        "tags": [
+          "buff"
+        ]
+      },
+      "ogre_magi_multicast": {
+        "text": "Пассивная: иногда повторяет заклинание.",
+        "tags": [
+          "passive",
+          "ult"
+        ]
+      }
+    }
+  },
+  "generic": {
+    "disable": "Контроль: ловите врага или сбивайте его заклинание. Лучше, когда союзники рядом и успеют убить.",
+    "slow": "Замедление: применяйте, когда враг убегает или нужно его догнать.",
+    "nuke": "Урон: добивайте героев с низким здоровьем; на линии — когда враг подходит к крипам. Следите за маной.",
+    "escape": "Перемещение: держите для побега, если вы в опасности; иначе — чтобы догнать.",
+    "defend": "Защита: нажимайте, когда вас начали бить или контролить, а не заранее.",
+    "heal": "Лечение: используйте после размена, а не на полном здоровье.",
+    "buff": "Усиление: включайте прямо перед драками или фармом.",
+    "summon": "Призыв: используйте для фарма и давления, отправляйте юнитов вперёд вместо себя.",
+    "passive": "Пассивная — работает сама."
+  },
+  "tag_order": [
+    "disable",
+    "escape",
+    "defend",
+    "heal",
+    "nuke",
+    "slow",
+    "summon",
+    "buff"
+  ],
+  "keywords": [
+    {
+      "tag": "disable",
+      "regex": "\\bstun|silence|hex|\\broot|ensnare|sleep|taunt|fear|cyclone|banish|disarm"
+    },
+    {
+      "tag": "escape",
+      "regex": "invisib|teleport|blink|leap|jump|dash|moves? (?:quickly|rapidly)|rushes|charges"
+    },
+    {
+      "tag": "defend",
+      "regex": "invulnerab|spell immunity|debuff immunity|damage reduction|reduces? (?:all )?incoming damage|dispel|shield|barrier"
+    },
+    {
+      "tag": "heal",
+      "regex": "\\bheal|restores? health|regenerat"
+    },
+    {
+      "tag": "summon",
+      "regex": "summon|spawns?|illusion|ward|creates? .* unit"
+    },
+    {
+      "tag": "slow",
+      "regex": "\\bslow"
+    },
+    {
+      "tag": "buff",
+      "regex": "bonus attack speed|bonus damage|increases? (?:your|his|her|its) attack"
+    },
+    {
+      "tag": "nuke",
+      "regex": "damage"
+    }
+  ]
+}

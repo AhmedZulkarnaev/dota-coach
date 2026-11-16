@@ -3,6 +3,7 @@
 Чистая функция без обращения к окну и сети — её легко тестировать.
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 OK, WARN, FAIL = "✓", "!", "✗"
@@ -30,10 +31,13 @@ def run_checks(
     store_status: str = "",
     voice_enabled: bool = True,
     has_russian_voice: bool | None = None,
+    user_rules: Sequence[str] = (),
+    rules_problems: dict[str, list[str]] | None = None,
 ) -> list[Check]:
     """Возвращает список проверок по порядку: от сервера до голоса.
 
     config_status — результат gsi_installer.config_status();
+    user_rules, rules_problems — свои правила из rules/ (coach/rules.py);
     payload_age — сколько секунд назад пришли последние данные от игры (None —
     ни разу).
     """
@@ -153,6 +157,23 @@ def run_checks(
                 "Озвучка будет молчать.",
                 "Параметры → Время и язык → Речь → «Добавить голоса» → "
                 "Русский.",
+            )
+        )
+
+    if user_rules:
+        checks.append(
+            Check(OK, "Подключены свои правила: " + ", ".join(user_rules))
+        )
+    for name, errors in (rules_problems or {}).items():
+        more = f" (и ещё {len(errors) - 2})" if len(errors) > 2 else ""
+        checks.append(
+            Check(
+                WARN,
+                f"Свои правила {name} не подключены",
+                "; ".join(errors[:2]) + more,
+                "Исправьте файл — все ошибки покажет "
+                "python tools/check_rules.py — или удалите его: тогда "
+                "работают встроенные правила.",
             )
         )
     return checks

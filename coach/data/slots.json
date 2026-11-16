@@ -1,0 +1,62 @@
+{
+  "_about": "Как программа решает, что продать или убрать в рюкзак. no_slot — не занимают слот; use_up — расходники; wards — варды; utility — носят специально (убираются последними); starter_junk — стартовые предметы, продаются первыми; cheap_stats — дешёвые статы, продаются следом.",
+  "no_slot": [
+    "aghanims_shard",
+    "tome_of_knowledge"
+  ],
+  "use_up": [
+    "blood_grenade",
+    "clarity",
+    "enchanted_mango",
+    "faerie_fire",
+    "famango",
+    "flask",
+    "great_famango",
+    "greater_famango",
+    "tango",
+    "tango_single"
+  ],
+  "wards": [
+    "ward_dispenser",
+    "ward_observer",
+    "ward_sentry"
+  ],
+  "utility": [
+    "bottle",
+    "dust",
+    "gem",
+    "smoke_of_deceit"
+  ],
+  "starter_junk": [
+    "blight_stone",
+    "branches",
+    "buckler",
+    "circlet",
+    "fluffy_hat",
+    "gauntlets",
+    "headdress",
+    "infused_raindrop",
+    "magic_stick",
+    "mantle",
+    "orb_of_venom",
+    "quelling_blade",
+    "ring_of_protection",
+    "ring_of_regen",
+    "ring_of_tarrasque",
+    "slippers",
+    "sobi_mask",
+    "wind_lace"
+  ],
+  "cheap_stats": [
+    "bracer",
+    "falcon_blade",
+    "hand_of_midas",
+    "magic_wand",
+    "null_talisman",
+    "orb_of_corrosion",
+    "ring_of_basilius",
+    "soul_ring",
+    "urn_of_shadows",
+    "wraith_band"
+  ]
+}

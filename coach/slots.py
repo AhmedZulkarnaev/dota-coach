@@ -19,6 +19,7 @@
 from collections import Counter
 from collections.abc import Iterable, Sequence
 
+from . import rules
 from .item_db import BOOTS, ItemDB
 
 Items = Sequence[str]
@@ -26,57 +27,16 @@ Items = Sequence[str]
 MAIN_SLOTS = 6
 BACKPACK_SLOTS = 3
 
+# Списки предметов — в coach/data/slots.json.
+_RULES = rules.load("slots")
 # Покупаются и сразу «съедаются» — слот не занимают.
-NO_SLOT = {"aghanims_shard", "tome_of_knowledge"}
-
-USE_UP = {
-    "tango",
-    "tango_single",
-    "flask",
-    "clarity",
-    "faerie_fire",
-    "enchanted_mango",
-    "famango",
-    "great_famango",
-    "greater_famango",
-    "blood_grenade",
-}
-WARDS = {"ward_observer", "ward_sentry", "ward_dispenser"}
+NO_SLOT = set(_RULES["no_slot"])
+USE_UP = set(_RULES["use_up"])
+WARDS = set(_RULES["wards"])
 # Носят специально — убираем в последнюю очередь.
-UTILITY = {"dust", "smoke_of_deceit", "gem", "bottle"}
-
-STARTER_JUNK = {
-    "branches",
-    "quelling_blade",
-    "magic_stick",
-    "orb_of_venom",
-    "blight_stone",
-    "gauntlets",
-    "slippers",
-    "mantle",
-    "circlet",
-    "ring_of_protection",
-    "sobi_mask",
-    "ring_of_regen",
-    "ring_of_tarrasque",
-    "fluffy_hat",
-    "wind_lace",
-    "infused_raindrop",
-    "headdress",
-    "buckler",
-}
-CHEAP_STATS = {
-    "bracer",
-    "wraith_band",
-    "null_talisman",
-    "magic_wand",
-    "soul_ring",
-    "falcon_blade",
-    "orb_of_corrosion",
-    "urn_of_shadows",
-    "ring_of_basilius",
-    "hand_of_midas",
-}
+UTILITY = set(_RULES["utility"])
+STARTER_JUNK = set(_RULES["starter_junk"])
+CHEAP_STATS = set(_RULES["cheap_stats"])
 
 VERB_USE, VERB_WARD, VERB_SELL, VERB_PARK = (
     "используйте",

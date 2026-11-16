@@ -17,7 +17,7 @@ import time
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
-from . import __version__, gsi_installer
+from . import __version__, gsi_installer, rules
 from . import settings as settings_mod
 from . import shopping as shop_mod
 from .data_store import DataStore
@@ -751,6 +751,8 @@ class CoachApp:
             store_status=self.store.status,
             voice_enabled=self.speaker.enabled,
             has_russian_voice=self.speaker.has_russian,
+            user_rules=rules.user_files(),
+            rules_problems=rules.user_problems(),
         )
         return format_checks(checks)
 

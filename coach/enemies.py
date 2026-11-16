@@ -3,51 +3,17 @@
 Угрозы определяются двумя способами:
   • роли героя из OpenDota (Disabler — много контроля, Nuker — много
     магического урона);
-  • короткие списки ниже — особенности наборов способностей, которые редко
+  • короткие списки героев — особенности наборов способностей, которые редко
     меняются.
+Сами признаки и советы — в coach/data/enemies.json.
 """
 
 from collections.abc import Sequence
 from typing import Any
 
-INVIS = {
-    "riki",
-    "bounty_hunter",
-    "clinkz",
-    "weaver",
-    "nyx_assassin",
-    "invoker",
-    "mirana",
-    "treant",
-    "templar_assassin",
-}
-EVASION = {"phantom_assassin", "windrunner"}
-ILLUSIONS = {
-    "phantom_lancer",
-    "naga_siren",
-    "chaos_knight",
-    "terrorblade",
-    "meepo",
-    "spectre",
-}
-HEALING = {
-    "necrolyte",
-    "alchemist",
-    "huskar",
-    "dazzle",
-    "oracle",
-    "omniknight",
-    "warlock",
-    "chen",
-    "wisp",
-    "witch_doctor",
-    "abaddon",
-    "juggernaut",
-    "treant",
-    "enchantress",
-    "life_stealer",
-    "undying",
-}
+from . import rules
+
+_RULES = rules.load("enemies")
 
 
 class EnemyCounter:
@@ -61,6 +27,7 @@ def analyze(
     enemy_shorts: Sequence[str],
     heroes_by_short: dict[str, dict[str, Any]],
     my_role: str,
+    data: dict[str, Any] | None = None,
 ) -> tuple[list[EnemyCounter], list[str], list[str]]:
     """Возвращает (counters, reminders, summary).
 
@@ -68,7 +35,9 @@ def analyze(
     "phantom_assassin"...)
     heroes_by_short — словарь short -> данные героя OpenDota (нужны roles)
     my_role — "core" или "support"
+    data — правила (по умолчанию coach/data/enemies.json)
     """
+    data = data or _RULES
     counters: list[EnemyCounter] = []
     reminders: list[str] = []
     summary: list[str] = []
@@ -84,114 +53,41 @@ def analyze(
             for s in lst
         )
 
-    disablers = [s for s in enemy_shorts if "Disabler" in roles(s)]
-    nukers = [s for s in enemy_shorts if "Nuker" in roles(s)]
-    invis = [s for s in enemy_shorts if s in INVIS]
-    evasion = [s for s in enemy_shorts if s in EVASION]
-    illusions = [s for s in enemy_shorts if s in ILLUSIONS]
-    healers = [s for s in enemy_shorts if s in HEALING]
-
-    if disablers:
-        summary.append(f"контроль ×{len(disablers)}")
-    if nukers:
-        summary.append(f"магия ×{len(nukers)}")
-    if invis:
-        summary.append("невидимость")
-    if evasion:
-        summary.append("уклонение")
-    if illusions:
-        summary.append("иллюзии")
-    if healers:
-        summary.append("лечение")
-
-    core = my_role == "core"
-    if len(disablers) >= 3 or (len(disablers) >= 2 and len(nukers) >= 3):
-        if core:
-            counters.append(
-                EnemyCounter(
-                    "black_king_bar",
-                    f"У врагов {len(disablers)} героя с контролем "
-                    "(оглушения, хексы, сайленсы). "
-                    "BKB даёт иммунитет к большинству заклинаний — без него "
-                    "в драке вас просто "
-                    "застанят и убьют.",
-                    1.0,
-                )
-            )
+    found: dict[str, list[str]] = {}
+    for name, g in data["groups"].items():
+        if "role" in g:
+            found[name] = [s for s in enemy_shorts if g["role"] in roles(s)]
         else:
+            heroes = set(g["heroes"])
+            found[name] = [s for s in enemy_shorts if s in heroes]
+        if found[name]:
+            n = len(found[name])
+            summary.append(
+                f"{g['label']} ×{n}" if g.get("count") else g["label"]
+            )
+
+    # Подстановки в текст: {disabler} — сколько героев, {evasion_names} — кто.
+    fill: dict[str, int | str] = {k: len(v) for k, v in found.items()}
+    fill |= {f"{k}_names": names(v) for k, v in found.items()}
+    role = "core" if my_role == "core" else "support"
+
+    def matches(rule: dict[str, Any]) -> bool:
+        return all(len(found[g]) >= n for g, n in rule["when"].items())
+
+    taken: set[str] = set()  # exclusive-группы, где правило уже сработало
+    for rule in data["counters"]:
+        group = rule.get("exclusive")
+        if group in taken or not matches(rule):
+            continue
+        if group:
+            taken.add(group)
+        advice = rule.get(role)
+        if advice:
+            text = advice["reason"].format_map(fill)
             counters.append(
-                EnemyCounter(
-                    "glimmer_cape",
-                    "У врагов много контроля и магии. Glimmer Cape делает "
-                    "вас (или союзника) "
-                    "невидимым и даёт защиту от магии — главный спасательный "
-                    "предмет саппорта.",
-                    0.8,
-                )
+                EnemyCounter(advice["item"], text, advice["strength"])
             )
-    elif len(nukers) >= 3:
-        if core:
-            counters.append(
-                EnemyCounter(
-                    "black_king_bar",
-                    f"У врагов {len(nukers)} героя с сильной магией. BKB "
-                    "спасает от магического "
-                    "урона в драках.",
-                    0.8,
-                )
-            )
-        else:
-            counters.append(
-                EnemyCounter(
-                    "glimmer_cape",
-                    "У врагов много магического урона: Glimmer Cape даёт "
-                    "сопротивление магии "
-                    "и невидимость, чтобы спастись.",
-                    0.7,
-                )
-            )
-
-    if evasion and core:
-        counters.append(
-            EnemyCounter(
-                "monkey_king_bar",
-                "У врагов есть уклонение от атак (" + names(evasion) + "). "
-                "Monkey King Bar даёт атакам точность — без него вы будете "
-                "промахиваться.",
-                0.9,
-            )
-        )
-
-    if illusions and core:
-        counters.append(
-            EnemyCounter(
-                "maelstrom",
-                "У врагов иллюзии/клоны. Maelstrom бьёт молниями по "
-                "нескольким целям "
-                "и помогает быстро сносить иллюзии.",
-                0.5,
-            )
-        )
-
-    if healers:
-        counters.append(
-            EnemyCounter(
-                "spirit_vessel",
-                "Во вражеской команде есть лечение. Spirit Vessel снижает "
-                "лечение и регенерацию "
-                "цели — враги перестанут «отхиливаться».",
-                0.5 if core else 0.8,
-            )
-        )
-
-    if invis:
-        reminders.append(
-            "У врагов невидимость: держите Dust of Appearance, "
-            + (
-                "ставьте Sentry Ward"
-                if not core
-                else "попросите саппортов про Sentry Ward"
-            )
-            + "."
-        )
+    for rule in data["reminders"]:
+        if matches(rule) and rule.get(role):
+            reminders.append(rule[role].format_map(fill))
     return counters, reminders, summary
